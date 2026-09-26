@@ -957,7 +957,7 @@ function showNote(){
   $('noteGo').focus();
 }
 function startNight(){
-  lastStart = structuredClone(S);
+  lastStart = structuredClone(S); saveGame();
   S.event = S.deep ? null : S.eventNext; S.eventNext = null;
   if (S.event && !S.eventsSeen.includes(S.event)) S.eventsSeen.push(S.event);
   queue = buildNight(S.night); totalCust = queue.length; served = 0; nightSales = 0; nightTips = 0; cust = null; counter = [];
@@ -1493,7 +1493,7 @@ const ENDINGS = {
 function ending(key){
   setPhase('end');
   const e = ENDINGS[key];
-  unlock('end_' + key, true);
+  unlock('end_' + key, true); clearSave();
   if (S.hard) unlock('week2', true);
   let extra = '';
   if (key === 'earl' && S.earlCall === 'home') extra += ' "You kept the lights on," he says. "I noticed."';
@@ -1548,38 +1548,50 @@ function epilogue(key){
   $('jOpen').addEventListener('click', () => { epiCtx = null; showJournal(() => epilogue(key)); });
   $('again').focus();
 }
+// ---------- saving: the run is saved at the start of every night ----------
+const SAVE_KEY = 'baitshop-save';
+function saveGame(){ try { localStorage.setItem(SAVE_KEY, JSON.stringify(lastStart)); } catch(e) {} }
+function clearSave(){ try { localStorage.removeItem(SAVE_KEY); } catch(e) {} }
+function loadSave(){
+  try {
+    const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+    return d && d.slots && d.prices && 'deep' in d && 'eventsSeen' in d ? d : null;
+  } catch(e) { return null; }
+}
 function showTitle(){
   hideOverlay();
   setPhase('start');
-  const resume = S.night > 1, n = ALL_SECRETS.filter(s => found.has(s.id)).length;
+  const saved = loadSave(), n = ALL_SECRETS.filter(s => found.has(s.id)).length;
+  const where = saved && (saved.deep ? 'the Deep Shift' : `${saved.hard ? 'Week Two, ' : ''}night ${saved.night}`);
   document.querySelector('.wrap').classList.add('titlemode');
   const box = $('titleBox'); box.hidden = false;
   box.innerHTML = `
     <p class="eyebrow">11:00 PM &middot; ROUTE 9 &middot; OPEN ALL NIGHT</p>
     <h1>Night Shift at the Bait Shop</h1>
     <p>Uncle Earl went fishing three weeks ago and didn't come back. Now the bait shop is yours, along with his bank loan, his regulars, and whatever keeps knocking inside the fridge.</p>
-    <p class="small">Five nights. Stock the fridge, ring up every item, make the bank's quota. Answer the phone. Sound on is best.</p>
-    <div class="acts"><button class="primary" id="go">${resume ? `Clock in (night ${S.night})` : 'Clock in'}</button><button id="jTitle">Journal (${n}/${ALL_SECRETS.length})</button>${[...found].some(id => id.startsWith('end_')) ? '<button id="tHard">Week Two (harder)</button>' : ''}${found.has('end_earl') ? '<button id="tDeep" class="warn">The Deep Shift</button>' : ''}</div>
+    <p class="small">Seven nights. Stock the fridge, ring up every item, make the bank's quota. Answer the phone. Sound on is best.</p>
+    <div class="acts">${saved ? `<button class="primary" id="cont">Continue (${where})</button><button id="go">New game</button>` : '<button class="primary" id="go">Clock in</button>'}<button id="jTitle">Journal (${n}/${ALL_SECRETS.length})</button>${[...found].some(id => id.startsWith('end_')) ? '<button id="tHard">Week Two (harder)</button>' : ''}${found.has('end_earl') ? '<button id="tDeep" class="warn">The Deep Shift</button>' : ''}</div>
+    <p class="small" id="saveNote">${saved ? 'Your run is saved at the start of every night.' : ''}</p>
     <div class="row"><button id="tMusic">Turn on the radio</button><label class="radio"><span class="sr">Radio station</span><select id="radioTitle"></select></label></div>`;
   fillRadio($('radioTitle'));
-  $('go').addEventListener('click', () => {
-    audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode'); showNote();
-  });
+  const enter = () => { audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode'); };
+  // starting over replaces the save, so a new run asks once before it does
+  let armed = false;
+  const fresh_ = (setup) => () => {
+    if (saved && !armed){ armed = true; $('saveNote').textContent = 'Starting a new run will replace your saved one. Click again to start over.'; return; }
+    enter(); setup();
+  };
+  $('cont')?.addEventListener('click', () => { enter(); S = saved; skin(S.deep); showNote(); });
+  $('go').addEventListener('click', fresh_(() => { S = fresh(); showNote(); }));
   $('jTitle').addEventListener('click', () => showJournal(hideOverlay));
-  $('tHard')?.addEventListener('click', () => {
-    audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode');
-    S = fresh(); S.hard = true; S.cash = 30; S.eventNext = rollEvent(); showNote();
-  });
-  $('tDeep')?.addEventListener('click', () => {
-    // replaying the Deep Shift from the title: a fresh run that has already reached Earl
-    audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode');
-    S = fresh(); S.fed = 6; startDeep();
-  });
+  $('tHard')?.addEventListener('click', fresh_(() => { S = fresh(); S.hard = true; S.cash = 30; S.eventNext = rollEvent(); showNote(); }));
+  // replaying the Deep Shift from the title: a fresh run that has already reached Earl
+  $('tDeep')?.addEventListener('click', fresh_(() => { S = fresh(); S.fed = 6; startDeep(); }));
   $('tMusic').addEventListener('click', () => {
     audio(); if (track < 0) setTrack(0);
     $('tMusic').textContent = 'Radio on'; $('tMusic').disabled = true;
   });
-  $('go').focus({preventScroll:true});
+  ($('cont') || $('go')).focus({preventScroll:true});
 }
 function showOverlay(html){ const ov = $('overlay'); ov.innerHTML = html; ov.hidden = false; }
 function hideOverlay(){ $('overlay').hidden = true; $('overlay').innerHTML = ''; }
