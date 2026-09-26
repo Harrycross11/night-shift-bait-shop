@@ -201,7 +201,8 @@ const ITEMS = {
 const KEYS = ['worm','cricket','minnow','coffee'];     // things customers order
 const STOCK = ['worm','glow','cricket','minnow'];      // things that live in the fridge
 const NUM = ['zero','one','two','three','four','five','six','seven','eight'];
-const POWER = 8, QUOTA = [25, 30, 35, 40, 45, 40];  // night 6 is the lake's toll
+const POWER = 8, NIGHTS = 7, STRIKES = 3;
+const QUOTA = [25, 28, 32, 36, 40, 44, 48, 40];  // night 8 is the Deep Shift: the lake's toll
 // Night 6 happens at the bottom of the lake: the same items, reskinned as things that fell in
 const SURFACE_SKIN = {}, DEEP_SKIN = {
   worm:{name:'Keys', s:'set of keys', p:'sets of keys'},
@@ -243,7 +244,8 @@ function fresh(){
     quotasMet:0, powerOff:false, gifts:[], milo:0, barbGlow:false, truckDeals:0,
     trust:0, replies:[], pellOk:false, down:false, earlCall:null, missedEarl:false,
     prices:{worm:2, cricket:3, minnow:4}, up:{}, water:100,
-    tape:null, wormName:null, lakeCalled:false, vicFree:false, vicMad:false, deep:false, deepChoice:null, lastEnding:null};
+    tape:null, wormName:null, lakeCalled:false, vicFree:false, vicMad:false, deep:false, deepChoice:null, lastEnding:null,
+    hard:false, event:null, eventNext:null, eventsSeen:[], racDone:false};
 }
 function skin(deep){
   if (!SURFACE_SKIN.worm) Object.keys(DEEP_SKIN).forEach(k => SURFACE_SKIN[k] = {name:ITEMS[k].name, s:ITEMS[k].s, p:ITEMS[k].p});
@@ -251,7 +253,7 @@ function skin(deep){
 }
 function startDeep(){
   // keep the run's story (Gordon, the worm's name, Earl's call), reset the shop for the lake bottom
-  S.deep = true; S.night = 6; S.powerOff = false; S.missedLast = false; S.deepChoice = null;
+  S.deep = true; S.night = NIGHTS + 1; S.event = null; S.eventNext = null; S.powerOff = false; S.missedLast = false; S.deepChoice = null;
   S.slots = Array(18).fill(null);
   ['worm','worm','worm','worm','worm','worm','worm','worm','cricket','cricket','cricket','cricket','cricket','minnow','minnow','minnow','minnow','minnow'].forEach((k, i) => S.slots[i] = k);
   S.box = {worm:4, glow:0, cricket:2, minnow:2};
@@ -263,7 +265,7 @@ function startDeep(){
 // ---------- journal of secrets (kept in this browser across runs) ----------
 const SECRETS = [
   {group:'Endings', items:[
-    {id:'end_survived', name:'You made it to Saturday', hint:'Survive the week.'},
+    {id:'end_survived', name:'You made it through the week', hint:'Survive the week.'},
     {id:'end_earl', name:'Earl comes back up', hint:'Take very good care of Gordon.'},
     {id:'end_empty', name:'The fridge is open', hint:'Ignore the knocking. Often.'},
     {id:'end_repo', name:'The bank takes the shop', hint:'Miss the bank\'s number twice.'},
@@ -289,6 +291,12 @@ const SECRETS = [
     {id:'fetch', name:'Gordon fetches the order', hint:'Earn his trust, then ask him for help.'},
     {id:'scare', name:'Gordon handles it', hint:'Let him deal with a rude customer.'},
     {id:'vic', name:'Where the glow comes from', hint:'Ask Vic the right questions.'},
+  ]},
+  {group:'Events', items:[
+    {id:'storm', name:'Open through the storm', hint:'Keep the shop open on a stormy night.'},
+    {id:'raccoon', name:'Raccoon, shooed', hint:'Something small and masked wants your crickets.'},
+    {id:'inspector', name:'Gordon vs. the inspector', hint:'Let Gordon help with an inspection.'},
+    {id:'week2', name:'Week Two', hint:'Finish a harder second week.'},
   ]},
   {group:'The Deep', items:[
     {id:'deep', name:'The Deep Shift', hint:'Get the Earl ending, then follow him down.'},
@@ -337,9 +345,15 @@ const CALLS = [
   {who:'Unknown caller', line:'Heh. Hey. Is your refrigerator running?', choices:[
     {label:'...Yes?', go:() => { unlock('prank'); setTimeout(() => { thump(true); toast('The fridge thumps once. Gordon thought that was funny.'); }, 1400); return 'Well you better go catch it! HAHAHA.'; }},
     {label:'It has legs, actually', go:() => { unlock('prank'); return '...What? What does that mean?'; }}]},
-  {who:'Mr. Pell (on the phone)', line:'The number tonight is $40. If the bank takes the shop, we auction everything. Including the fridge.', choices:[
+  {who:'Wrong number', line:'Hello? Is this the lake? ...I need to speak to the lake. It has my wedding ring.', choices:[
+    {label:'This is a bait shop', go:() => 'Oh. Sorry. If you see the lake, tell it I want my ring back.'},
+    {label:'Hold on, I\'ll ask the fridge', go:() => { setTimeout(() => { thump(false); toast('The fridge knocks twice. That might mean yes.'); }, 900); return '...Did your fridge just answer me?'; }}]},
+  {who:'Mr. Pell (on the phone)', get line(){ return `The number tonight is $${quota()}. If the bank takes the shop, we auction everything. Including the fridge.`; }, choices:[
     {label:'I\'ll make the number', go:() => 'We\'ll see.'},
     {label:'What happens to what\'s inside the fridge?', go:() => { setTimeout(() => { thump(true); toast('The fridge knocks, very hard.'); }, 1000); return 'We dispose of the contents. Why?'; }}]},
+  {who:'Unknown caller (static)', line:'...kid? ...(static)... can you hear... (static)... don\'t let Pell open the... (click)', choices:[
+    {label:'Earl? EARL?', go:() => '(dial tone)'},
+    {label:'Hang up', go:() => '(dial tone)'}]},
   {who:'Earl (very bad line)', line:'Kid? It\'s Earl. The line\'s bad, I\'m pretty far down. Is Gordon eating okay?', choices:[
     {label:'He\'s eating great', go:() => { S.earlCall = 'fine'; unlock('earl_call'); return S.fed >= 4 ? 'Good. I can tell. The water gets warmer down here when he\'s happy.' : 'Kid. I can tell when you\'re fibbing. Feed him.'; }},
     {label:'Where ARE you?', go:() => { S.earlCall = 'where'; unlock('earl_call'); return 'Under the lake. Under under. There\'s a whole town down here. I\'ll explain when I-- (static)'; }},
@@ -386,6 +400,12 @@ const GNOTES = [
   {txt:'pell smells like pennies. can i eat him', a:[
     {label:'No! You cannot eat the banker.', kind:1, reply:'ok. (sad)'},
     {label:'...Maybe. If he takes the shop.', kind:0, key:'pellOk', reply:'!!!!!!'}]},
+  {txt:'the pipes are loud. things are coming up from below. are you scared', a:[
+    {label:'Not if you\'re here.', kind:1, reply:'i am here. always'},
+    {label:'A little, yeah.', kind:0, reply:'me too. a little'}]},
+  {txt:'vic is my cousin. do you like vic', a:[
+    {label:'Vic\'s alright.', kind:1, reply:'i will tell him. he will pretend not to care'},
+    {label:'Vic is very weird.', kind:0, reply:'yes. family is like that'}]},
   {txt:'tomorrow i open the way down. earl is waiting. will you come', a:[
     {label:'I\'ll come.', kind:1, key:'down', reply:'good. bring worms'},
     {label:'I\'m staying up here with the shop.', kind:0, reply:'ok. then i will bring him up'}]},
@@ -415,9 +435,9 @@ let fr = {timer:0, rattle:0, left:0, thumpAcc:0};
 let toastT = 0, shake = 0, drawerT = 0, steal = null, floats = [], cricketT = 3;
 const stock = k => S.slots.filter(s => s === k).length;
 const boxCount = () => STOCK.reduce((s, k) => s + S.box[k], 0);
-const quota = () => QUOTA[S.night - 1];
+const quota = () => Math.round(QUOTA[S.night - 1] * (S.hard && !S.deep ? 1.3 : 1));
 const stage = () => Math.min(4, Math.floor(S.fed / 2));
-const hunger = () => stage() >= 2 ? 2 : 1;
+const hunger = () => (stage() >= 2 ? 2 : 1) + (S.hard ? 1 : 0);
 
 // ---------- sound ----------
 let AC = null, MASTER = null, HUMG = null, muted = false;
@@ -613,10 +633,13 @@ const NOTES = [
   {h:'Taped to the register', body:['Kid,','The shop is yours until I get back. Open 11 to 5. Mr. Pell from the bank wants a number every night. Make the number.','Stock goes in the fridge. Worms die if you leave them in the box.','If the fridge knocks, open it. You\'ll know what to do.','P.S. If the register ever asks you for a code, it\'s the year I opened this place.'], sig:'Earl'},
   {h:'Earl\'s notebook, June 3', body:['There is something living behind the worms. It ate a whole flat of nightcrawlers, then it fixed the compressor.','I did not ask it to fix the compressor.','I\'m calling him Gordon.'], sig:''},
   {h:'Earl\'s notebook, June 9', body:['Gordon knocks when he\'s hungry. The more you feed him, the more he wants. If you don\'t feed him, he helps himself.','He likes the glowing worms Vic sells best. Don\'t ask Vic where they come from.'], sig:''},
+  {h:'Earl\'s notebook, June 11', body:['Storm last night. Power went out. Gordon glowed in the dark so I could count the drawer. Good kid.','Vic says the drain is "busy" this time of year. I didn\'t ask what that means.'], sig:''},
   {h:'Earl\'s notebook, June 14', body:['Pell was here. Says the numbers are bad.','Gordon knocked so hard the pickled eggs fell off the shelf. Gordon does not like Pell.','Barb says she saw something in the lake with more than two eyes. I didn\'t tell her.'], sig:''},
+  {h:'Earl\'s notebook, June 17', body:['Found the door. It\'s behind the back wall of the fridge, past Gordon. It\'s warm. It smells like summer.','Pell wants to buy the shop outright. Told him the fridge isn\'t for sale. He didn\'t laugh.'], sig:''},
   {h:'Earl\'s notebook, June 20', body:['Gordon showed me what\'s behind the back wall. It goes down a long way. The fishing down there is unbelievable.','Going for a look. If I\'m not back, feed him. He\'ll look after you.'], sig:'E.'},
   {h:'Pinned to a piece of driftwood', body:['Kid, welcome to the bottom of the lake.','Same shop, different customers. Down here they buy whatever falls in from up top: keys, socks, phone chargers. They pay in sand dollars.','The lake takes a toll, $40 a night. Don\'t worry if you miss it. The lake is patient.','Gordon will help. I\'ll come by at closing.'], sig:'Earl'},
 ];
+const WEEK2_NOTE = {h:'Taped to the register (again)', body:['Kid,','Week two. Pell raised the numbers. Gordon is hungrier. The customers are in more of a hurry.','You know the drill. Feed him, make the number, answer the phone.','P.S. Listen to the radio at closing. It tells you what\'s coming.'], sig:'Earl (from somewhere down there)'};
 const GIFTS = [
   {id:'five',  text:'a wet $5 bill', fn:() => { S.cash += 5; }},
   {id:'lure',  text:'a lure with "EARL" carved into it'},
@@ -650,9 +673,10 @@ const talk = (line, after = 'Okay.') => ({talk:true, line, choices:[{label:'Okay
 
 function dennis(n){
   const base = {name:'Dennis', look:{kind:'blob', color:'#c8b89a', w:42, h:140, glasses:true, tie:n >= 3}, dennis:true};
-  if (n === 5) return {...base, ...talk('No worm tonight. I let the last one go. I just came to say goodnight. Here, for your trouble.' + (S.wormName ? ` Oh, and hello, ${S.wormName}.` : ''),
+  if (n === NIGHTS) return {...base, ...talk('No worm tonight. I let the last one go. I just came to say goodnight. Here, for your trouble.' + (S.wormName ? ` Oh, and hello, ${S.wormName}.` : ''),
     () => { S.cash += 5; nightTips += 5; floatAt(532, 230, '+$5'); unlock('dennis'); return 'Say goodnight to Gordon for me.'; })};
-  const lines = ['One worm, please.','One worm. Same as last time.','Just the one worm. He is wearing a tie tonight.','One worm. Big night for me.'];
+  const lines = ['One worm, please.','One worm. Same as last time.','Just the one worm. He is wearing a tie tonight.',
+    'One worm. I\'ve been practicing a speech for him.','One worm. Big night for me.','One worm. Tomorrow I let him go. He knows.'];
   const p = S.prices.worm;
   // Dennis will pay whatever you charge. He will also say something about it.
   const note = p > 2 ? ` ...Oh. It's $${p} now? That's okay. That's fine.` : p < 2 ? ' Oh! It\'s cheaper! Earl never did that.' : '';
@@ -668,7 +692,9 @@ function milo(n){
   if (n === 1) return caps('Can I have one cup of worms? I have eleven bottle caps.');
   if (n === 2) return caps('Bottle caps again. Fourteen this time. One of them is rare.');
   if (n === 3) return {...base, order:o({worm:1}), pay:2, line:'I found two REAL dollars. One cup of worms, please.', rate:1/60, thanks:'I\'m rich.'};
-  if (n === 4) return {...base, ...talk(S.milo ? 'I caught my first fish! It was the size of my hand. Thank you for the worms.' : 'I got worms from the gas station. They were bad worms. I didn\'t catch anything.', 'Bye!')};
+  if (n === 4) return caps('Twenty bottle caps and a bent spoon. The spoon is a lure. I made it myself.');
+  if (n === 5) return {...base, ...talk(S.milo ? 'I caught my first fish! It was the size of my hand. Thank you for the worms.' : 'I got worms from the gas station. They were bad worms. I didn\'t catch anything.', 'Bye!')};
+  if (n === 6) return null;  // Milo is at his grandpa's tonight
   return {...base, ...talk(S.milo >= 2 ? 'My grandpa says I have to pay you back properly. He gave me a real twenty. Also I drew you a picture.' : 'Me and my grandpa are going to the lake tomorrow. Bye!',
     () => { if (S.milo >= 2){ S.cash += 20; nightTips += 20; floatAt(532, 230, '+$20'); toast('In the drawing, the fridge has eyes.'); unlock('milo'); } return 'Bye!'; })};
 }
@@ -677,7 +703,9 @@ function barb(n){
   if (n === 1) return {...base, order:o({minnow:1}), line:'One bag of minnows. There\'s something in that lake. Something big.', rate:1/48};
   if (n === 2) return {...base, order:o({minnow:2}), line:'Two bags. It took my whole line yesterday. My whole line.', rate:1/48};
   if (n === 3) return {...base, order:o({minnow:3, worm:1}), line:'Three bags of minnows and a cup of worms. I saw it. It has more than two eyes.', rate:1/48};
-  if (n === 4) return {...base, talk:true, line:'Minnows aren\'t cutting it. You got anything... special? Anything that glows?', choices:[
+  if (n === 4) return {...base, order:o({minnow:2, coffee:1}), line:'Two bags of minnows and a coffee. I didn\'t sleep. It sang last night. Out on the water. It sang.', rate:1/48};
+  if (n === 6) return {...base, order:o({minnow:3}), line:'Three bags. I rented a bigger boat. Don\'t laugh.', rate:1/48, thanks:'Tomorrow. I can feel it.'};
+  if (n === 5) return {...base, talk:true, line:'Minnows aren\'t cutting it. You got anything... special? Anything that glows?', choices:[
     {label:'Sell her a glowing worm ($12)', can:() => stock('glow') > 0, go:() => { removeStock('glow', 1); S.barbGlow = true; sellDirect(12); return 'Oh, that\'s the stuff. Wish me luck.'; }},
     {label:'Two bags of minnows ($8)', can:() => stock('minnow') >= 2, go:() => { removeStock('minnow', 2); sellDirect(8); return 'Fine. It won\'t be enough.'; }},
     {label:'Nothing tonight', go:() => 'Hm.', mood:'sad'},
@@ -686,7 +714,7 @@ function barb(n){
     () => { if (S.barbGlow) unlock('barb'); return 'Tight lines.'; })};
 }
 function trucker(n){
-  const want = n === 2 ? 6 : 8, pay = n === 2 ? 16 : 22;
+  const want = n <= 2 ? 6 : 8, pay = n <= 2 ? 16 : 22;
   return {name:'Guy in a truck', look:{kind:'blob', color:'#d97a6c', w:66, h:190, hat:true, hatColor:'#3f5f7a'}, talk:true,
     line:`Tournament at dawn. I'll give you $${pay} for ${NUM[want]} cups of worms, right now. Cash.`, choices:[
       {label:`Deal ($${pay})`, can:() => stock('worm') >= want, go:() => { removeStock('worm', want); S.truckDeals++; sellDirect(pay); unlock('truck'); return 'Pleasure.'; }},
@@ -701,15 +729,32 @@ function special(n){
       line:'One bag of minnows. They\'re for him. (The carrier growls at the fridge.)', pay:5, rate:1/42},
     {name:'Customer in a long coat', look:{kind:'fish'}, order:o({minnow:2}),
       line:'Two bags of minnows. They\'re for a friend. Stop looking at me like that.', pay:10, rate:1/38, thanks:'...Thank you. Tell no one.'},
+    {name:'Two teenagers (one dare)', look:{kind:'blob',color:'#e6d36a',w:50,h:175,hat:true,hatColor:'#b5523b'}, order:o({worm:1}),
+      line:'We\'re here on a dare. One cup of worms. Is it true the fridge talks?', pay:5, rate:1/44, thanks:'...Did it just knock? We\'re leaving.'},
     {name:'Tired nurse', look:{kind:'blob',color:'#a3d6c4',w:48,h:180}, order:o({coffee:2}),
       line:'Do you sell anything that isn\'t alive? ...Two coffees, then.', pay:5, rate:1/46},
+    {name:'Man with a metal detector', look:{kind:'blob',color:'#d8b48f',w:54,h:190,glasses:true}, order:o({cricket:1, coffee:1}),
+      line:'A bag of crickets and a coffee. Found something by the drain out back. It was warm. It was humming.', pay:10, rate:1/46},
     {name:'Man in a damp hat', look:{kind:'blob',color:'#b9a58c',w:56,h:185,hat:true,hatColor:'#3f5f7a'}, order:o({worm:2}),
       line:'Two cups of worms. Is Gordon eating okay? Don\'t tell him I was here.', pay:5, rate:1/50, thanks:'You\'re doing fine, kid.'},
   ][n-1];
 }
 function pell(){
   return {name:'Mr. Pell, First Lakeside Bank', look:{kind:'landlord',color:'#8d8a9e',w:62,h:185,tie:true}, pell:true,
-    ...talk(`You missed the number last night. That's strike ${S.strikes} of 2. Miss it again and the bank takes the shop.`, 'Good night.')};
+    ...talk(`You missed the number last night. That's strike ${S.strikes} of ${STRIKES}. ${S.strikes >= STRIKES - 1 ? 'Miss it again and the bank takes the shop.' : 'The bank is watching.'}`, 'Good night.')};
+}
+// Week Two only
+function intern(){
+  return {name:'Mr. Pell\'s intern', look:{kind:'blob', color:'#b7c0bd', w:44, h:170, glasses:true, tie:true}, talk:true,
+    line:'Mr. Pell sent me. He won\'t come inside anymore. He asked me to check if the fridge is... okay?', choices:[
+      {label:'Show the intern the fridge', go:() => { thump(true); return 'IT BLINKED. It blinked at me. I\'m telling Mr. Pell everything is fine.'; }, mood:'angry'},
+      {label:'The fridge is fine', go:() => 'Great. Great. I\'m going to stand outside now.'},
+    ]};
+}
+function denise(n){
+  return {name:'Denise (Dennis\'s sister)', look:{kind:'blob', color:'#d9a0c8', w:44, h:150, glasses:true}, order:o({worm:1}), pay:5, rate:1/50,
+    line:n < 5 ? 'One worm. My brother says you\'re good people. He talks about you a lot.' : 'One worm. I\'m letting mine go tomorrow too. It\'s a family thing.',
+    thanks:'Say hi to the fridge for me. Dennis says that\'s polite.'};
 }
 // Gordon helps once he's big enough and trusts you
 const helper = () => S.deep || (stage() >= 2 && (S.trust >= 1 || S.fed >= 5));
@@ -797,16 +842,102 @@ function lakeLady(){
       {label:'Who are you?', go:() => ({line:'I\'m the lake. Well, a small part of it. Earl typed that code once, too.', choices:[give, {label:'Goodnight', go:() => 'Goodnight.'}]})},
     ]};
 }
+// ---------- random events: one a night from night 2 (every night in Week Two), forecast on the radio the night before ----------
+const EVENTS = {
+  storm:{name:'Thunderstorm', radio:'Big storm rolling in tomorrow night. Fewer customers, but the ones who show up tip well. Power may go out.'},
+  raccoon:{name:'Raccoon', radio:'Raccoons have been raiding bait shops up and down Route 9. Lock up your crickets.'},
+  tournament:{name:'Fishing tournament', radio:'Fishing tournament at dawn the day after tomorrow. Expect a rush on minnows tomorrow night.'},
+  tourbus:{name:'Tour bus', radio:'A tour bus is lost on Route 9 again. Tourists love coffee and are always in a hurry.'},
+  heat:{name:'Heat wave', radio:'Heat wave tomorrow. Minnow water will go bad twice as fast.'},
+  inspector:{name:'Health inspector', radio:'The county health inspector is doing surprise visits this week. Keep that fridge clean.'},
+  moon:{name:'Full moon', radio:'Full moon tomorrow night. The old-timers say things get restless under a full moon.'},
+};
+function rollEvent(){
+  const seen = S.eventsSeen || [], all = Object.keys(EVENTS), fresh_ = all.filter(k => !seen.includes(k));
+  return pick(fresh_.length ? fresh_ : all);
+}
+function tourist(){
+  const ord = Math.random() < .6 ? o({coffee:1 + (Math.random() < .4 ? 1 : 0)}) : o({worm:1});
+  return {name:'Tourist', look:{...randLook(), camera:true}, order:ord, rate:1/30,
+    line:`We have five minutes! ${cap(orderText(ord))}!${ord.worm ? ' It\'s for a photo.' : ''}`, thanks:'*click* Got a picture of your fridge!'};
+}
+function inspector(){
+  const problem = () => S.water < 40 ? 'water' : stock('glow') ? 'glow' : S.fed >= 1 ? 'eyes' : null;
+  const fine = n => { S.cash = Math.max(0, S.cash - n); floatAt(532, 226, `-$${n}`, '#ff735e'); updAll(); };
+  return {name:'County health inspector', look:{kind:'blob', color:'#e6eed3', w:50, h:185, glasses:true, tie:true}, talk:true,
+    line:'Surprise inspection. I\'ll need to see inside that fridge. Now, please.', choices:[
+      {label:'Show the inspector the fridge', go:() => {
+        const p = problem(); if (!p) return 'Clean. Cold. Very... quiet. You pass.';
+        fine(10);
+        return p === 'water' ? 'Cloudy minnow water. That\'s a $10 fine.'
+          : p === 'glow' ? 'These worms are GLOWING. That\'s a $10 fine, and I don\'t want to know.'
+          : 'Something in the back of that fridge looked at me. $10 fine. I\'m not writing down why.';
+      }, mood:'sad'},
+      {label:'Pay a $5 "processing fee"', can:() => S.cash >= 5, go:() => { fine(5); return 'I didn\'t see anything. I was never here.'; }},
+      {label:'Let Gordon handle it', show:helper, go:() => { gordonScare(false); unlock('inspector'); return 'I am WRITING THIS DOWN. I am NOT writing this down!'; }, mood:'angry'},
+    ]};
+}
+// the raccoon and the storm run on timers during the night
+let rac = null, storm = {thunder:0, flash:0, dark:0};
+function tickEvents(dt){
+  if (S.event === 'raccoon' && !S.racDone){
+    if (!rac){ rac = {at:15 + Math.random() * 20, t:0}; }
+    if (rac.at > 0){ rac.at -= dt; if (rac.at <= 0){ rac.t = 7; toast('A raccoon is climbing over the counter! Click it to shoo it away.', 3.5); tone(900,.08,'square',.03); tone(700,.08,'square',.03,.1); } }
+    else if (rac.t > 0){
+      rac.t -= dt;
+      if (rac.t <= 0){
+        S.racDone = true; let took = 0;
+        for (let n = 0; n < 2; n++){ let i = S.slots.lastIndexOf('cricket'); if (i < 0) i = S.slots.lastIndexOf('worm'); if (i >= 0){ S.slots[i] = null; took++; } }
+        toast(took ? `The raccoon ran off with ${took} thing${took > 1 ? 's' : ''} from the fridge.` : 'The raccoon found nothing and left, disappointed.');
+        updAll();
+      }
+    }
+  }
+  if (S.event === 'storm'){
+    storm.thunder -= dt;
+    if (storm.thunder <= 0){
+      storm.thunder = 8 + Math.random() * 10; storm.flash = .35;
+      tone(55,1.2,'sawtooth',.06); tone(40,1.6,'sine',.12,.1);
+      if (!RM) shake = Math.max(shake, 3);
+      if (Math.random() < .3 && storm.dark <= 0){ storm.dark = 6; setTimeout(() => toast('The power flickers out!'), 200); }
+    }
+    if (storm.flash > 0) storm.flash -= dt;
+    if (storm.dark > 0) storm.dark -= dt;
+  }
+}
+function shooRaccoon(){
+  if (!rac || rac.t <= 0) return;
+  rac.t = 0; S.racDone = true; unlock('raccoon');
+  tone(300,.1,'square',.04); tone(500,.12,'square',.04,.1);
+  toast('You shoo the raccoon out the door. It looks offended.');
+}
+
 function buildNight(n){
   if (S.deep) return buildDeep();
   const names = [...NAMES].sort(() => Math.random() - .5);
   const q = [];
-  for (let i = 0; i < [4,4,5,5,5][n-1]; i++) q.push(randomCustomer(names));
-  const ins = (c, f) => q.splice(Math.round(q.length * f), 0, c);
+  let count = [4,4,5,5,5,5,5][n-1];
+  if (S.event === 'storm') count -= 1;
+  if (S.event === 'tournament') count += 1;
+  for (let i = 0; i < count; i++){
+    const c = randomCustomer(names);
+    if (S.event === 'tournament' && Math.random() < .65){
+      c.order.minnow++;
+      c.line = `${cap(orderText(c.order))}. Tournament at dawn, gotta load up.`;
+    }
+    q.push(c);
+  }
+  const ins = (c, f) => { if (c) q.splice(Math.round(q.length * f), 0, c); };
   ins(dennis(n), .15); ins(milo(n), .35); ins(special(n), .55); ins(barb(n), .75);
-  if (n === 3) ins(vic(), .45);
-  if (n === 3 || n === 5) ins(rude(n), .65);
-  if (n === 2 || n === 4) ins(trucker(n), .92);
+  if (n === 4) ins(vic(), .45);
+  if (n === 3 || n === 6) ins(rude(n), .65);
+  if (n === 2 || n === 5) ins(trucker(n), .92);
+  if (S.event === 'tourbus'){ const at = Math.round(q.length * .5); q.splice(at, 0, tourist(), tourist(), tourist()); }
+  if (S.event === 'inspector') ins(inspector(), .5);
+  if (S.hard){
+    if (n === 3) ins(intern(), .4);
+    if (n === 2 || n === 5) ins(denise(n), .3);
+  }
   if (S.missedLast) q.unshift(pell());
   return q;
 }
@@ -814,7 +945,7 @@ function buildNight(n){
 // ---------- flow ----------
 function showNote(){
   setPhase('note');
-  const n = NOTES[S.night - 1];
+  const n = S.hard && S.night === 1 ? WEEK2_NOTE : NOTES[S.night - 1];
   showOverlay(`
     <div class="notebook" role="dialog" aria-label="${n.h}">
       <h2>${n.h}</h2>
@@ -827,13 +958,16 @@ function showNote(){
 }
 function startNight(){
   lastStart = structuredClone(S);
+  S.event = S.deep ? null : S.eventNext; S.eventNext = null;
+  if (S.event && !S.eventsSeen.includes(S.event)) S.eventsSeen.push(S.event);
   queue = buildNight(S.night); totalCust = queue.length; served = 0; nightSales = 0; nightTips = 0; cust = null; counter = [];
-  fr = {timer:10 + Math.random()*10, rattle:0, left:S.deep ? 0 : [1,2,2,3,3][S.night-1], thumpAcc:0};
+  fr = {timer:10 + Math.random()*10, rattle:0, left:S.deep ? 0 : [1,1,2,2,2,3,3][S.night-1] + (S.hard ? 1 : 0) + (S.event === 'moon' ? 2 : 0), thumpAcc:0};
+  rac = null; storm = {thunder:6, flash:0, dark:0}; S.racDone = false;
   view = 'shop'; floats = []; steal = null; esc = null; waterWarned = S.water < 40;
   fetchLeft = S.deep ? 4 : stage(); fetchQ = []; reach = null; signHits = 0;
   ph = {at:18 + Math.random() * 16, ring:0, done:!!S.deep, acc:0}; onCall = false; $('phoneBtn').hidden = true;
   setPhase('stock');
-  say('', `Quota tonight: $${quota()} in sales.`);
+  say('', `Quota tonight: $${quota()} in sales.` + (S.event ? ` Tonight: ${EVENTS[S.event].name.toLowerCase()}.` : ''));
   toast(S.powerOff ? 'You didn\'t pay the electric. It\'s very dark in here.' : boxCount() ? 'Click the fridge to put the delivery away.' : 'No delivery tonight.', 4);
 }
 function openShop(){
@@ -980,6 +1114,7 @@ function complete(over){
   floatAt(532, 226, '+$' + cust.tot);
   let line;
   if (over > 0) line = pick([`Uh, that's $${over} too much. Okay, bye!`, 'Pleasure doing business. (They counted it. They\'re keeping the extra.)']);
+  else if (S.event === 'storm'){ S.cash += 2; nightTips += 2; line = pick(['Thanks for staying open in this. Keep two bucks.','You\'re a hero. Two dollars, for the storm.']); }
   else if (cust.cheap && cust.patience > .3){ S.cash += 2; nightTips += 2; line = pick(['Cheap AND good? Here\'s two bucks for you.','Best prices on the lake. Keep two dollars.']); }
   else if (cust.patience > .6 && !cust.thanks){ S.cash += 1; nightTips += 1; line = pick(['Fast. Here, a dollar for you.','Keep a dollar. Buy yourself a worm.']); }
   else line = cust.thanks || pick(['Thanks.','Yep.','Tight lines.','Okay.','Mm.']);
@@ -1004,7 +1139,7 @@ function changeWater(){
 function tickWater(dt){
   if (S.up.pump || S.deep){ S.water = 100; return; }
   const before = S.water;
-  S.water = Math.max(0, S.water - dt * .9);
+  S.water = Math.max(0, S.water - dt * .9 * (S.event === 'heat' ? 2 : 1));
   if (before >= 40 && S.water < 40 && !waterWarned){ waterWarned = true; toast('The minnow water is getting cloudy.'); }
   if (Math.floor(before) !== Math.floor(S.water) && view === 'fridge') updPanels();
   if (S.water < 20){
@@ -1163,11 +1298,11 @@ function tickFetch(dt){
   }
   fetchT = .5; updAll();
 }
-function gordonScare(){
+function gordonScare(money = true){
   thump(true); setTimeout(() => thump(true), 250);
   reach = {t:0, x:400, y:150, dur:1.1};
   unlock('scare');
-  setTimeout(() => { S.cash += 8; nightTips += 8; floatAt(420, 250, '+$8'); toast('He ran off so fast he dropped $8. Gordon looks very pleased with himself.', 4); updAll(); }, 1300);
+  if (money) setTimeout(() => { S.cash += 8; nightTips += 8; floatAt(420, 250, '+$8'); toast('He ran off so fast he dropped $8. Gordon looks very pleased with himself.', 4); updAll(); }, 1300);
 }
 
 // ---------- Gordon ----------
@@ -1190,7 +1325,7 @@ function feed(){
   if (stage() >= 4) unlock('gordon_full');
   slurp(); fr.rattle = 0; fr.timer = 14 + Math.random() * 14;
   floatAt(300, 40, stage() > before ? 'he grew!' : 'munch', '#f5e46a', 'fridge');
-  if (Math.random() < .45) setTimeout(giveGift, 1200);
+  if (Math.random() < (S.event === 'moon' ? 1 : .45)) setTimeout(giveGift, 1200);
   updAll();
 }
 function giveGift(){
@@ -1230,7 +1365,8 @@ function endNight(){
     return ending(S.deepChoice === 'stay' ? 'deep_stay' : 'deep_home');
   }
   onCall = false; ph.done = true; ph.ring = 0; $('phoneBtn').hidden = true;
-  if (S.night === 5 && !S.earlCall) S.missedEarl = true;
+  if (S.night === NIGHTS && !S.earlCall) S.missedEarl = true;
+  if (S.event === 'storm') unlock('storm');
   view = 'shop'; setPhase('between'); fr.rattle = 0; cust = null;
   const met = nightSales >= quota();
   if (met){ S.quotasMet++; S.missedLast = false; } else { S.strikes++; S.missedLast = true; }
@@ -1243,10 +1379,18 @@ function endNight(){
   if (S.fed >= 1 && GNOTES[S.night - 1]) note += 'Something is taped inside the fridge door.';
   else if (S.ignored >= 2) note += 'The back wall of the fridge is warm. It should not be warm.';
   else note += 'The fridge hums. The parking lot is empty.';
-  const last = S.night >= 5, shortage = S.night === 3, wmax = shortage ? 4 : 24;
+  const last = S.night >= NIGHTS, shortage = S.night === 4, wmax = shortage ? 4 : 24;
   const used = S.slots.filter(Boolean).length, free = nSlots() - used, left = S.box.cricket + S.box.minnow + S.box.glow;
-  const ord = last ? {worm:0, cricket:0, minnow:0, vic:0}
-    : {worm:Math.min(free, 10, wmax), cricket:Math.min(Math.max(0, free - 10), 3), minnow:Math.min(Math.max(0, free - 13), 3), vic:0};
+  // suggest an order that tops each item up to a sensible level, trimmed to the space left
+  const ord = {worm:0, cricket:0, minnow:0, vic:0};
+  if (!last){
+    const target = {worm:9, cricket:4, minnow:4};
+    let room = Math.max(0, free - left);
+    for (const k of ['cricket','minnow','worm']){
+      const want = Math.max(0, target[k] - stock(k) - S.box[k]);
+      ord[k] = Math.min(want, room, k === 'worm' ? wmax : 24); room -= ord[k];
+    }
+  }
   const ROWS = [
     {k:'worm', label:'HANK\'S WORMS', price:'$1 EA', cost:1, max:wmax},
     {k:'cricket', label:'HANK\'S CRICKETS', price:'$2 EA', cost:2, max:24},
@@ -1256,7 +1400,11 @@ function endNight(){
   const newPrices = {...S.prices};
   const buy = new Set();
   const stepper = (attr, k, val, label) => `<span class="step"><button ${attr}="${k}" data-d="-1" aria-label="Lower ${label}">-</button><output id="${attr}_${k}">${val}</output><button ${attr}="${k}" data-d="1" aria-label="Raise ${label}">+</button></span>`;
+  S.eventNext = last ? null : rollEvent();
   const shopSections = last ? '<p class="fine">Last night. No orders, no upgrades. Just go home.</p>' : `
+      <p class="lbl">RADIO FORECAST</p>
+      <p class="fine">${EVENTS[S.eventNext].radio}</p>
+      <hr>
       <p class="lbl">TOMORROW'S PRICES</p>
       ${['worm','cricket','minnow'].map(k => `<div class="r"><span>${ITEMS[k].name.toUpperCase()} <span class="fine">(USUAL $${ITEMS[k].price})</span></span>${stepper('data-p', k, '$' + newPrices[k], ITEMS[k].name + ' price')}</div>`).join('')}
       <p class="fine" id="priceNote"></p>
@@ -1275,7 +1423,7 @@ function endNight(){
     <div class="receipt" role="dialog" aria-label="End of night">
       <h2>NIGHT ${S.night} &middot; CLOSED</h2>
       <div class="r"><span>SALES</span><span>$${nightSales}</span></div>
-      <div class="r"><span>BANK QUOTA $${quota()}</span><span class="${met ? 'good' : 'bad'}">${met ? 'MET' : `MISSED (${S.strikes}/2)`}</span></div>
+      <div class="r"><span>BANK QUOTA $${quota()}</span><span class="${met ? 'good' : 'bad'}">${met ? 'MET' : `MISSED (${S.strikes}/${STRIKES})`}</span></div>
       <div class="r"><span>TIPS &amp; GIFTS</span><span>$${nightTips}</span></div>
       <div class="r big"><span>IN THE DRAWER</span><span>$${S.cash}</span></div>
       <hr>
@@ -1327,9 +1475,9 @@ function endNight(){
     let vicWorms = ord.vic * 3;
     if (S.vicFree && ord.vic > 0){ vicWorms += 3; S.vicFree = false; }
     for (let i = 0; i < vicWorms; i++) Math.random() < (S.vicMad ? .2 : .4) ? S.box.glow++ : S.box.worm++;
-    if (S.strikes >= 2) return ending(S.fed >= (S.pellOk ? 2 : 4) ? 'pell' : 'repo');
-    if (S.night >= 5) return ending(S.fed >= FRIEND ? 'earl' : S.ignored >= 3 ? 'empty' : 'survived');
-    showGordonNote(() => { S.night++; hideOverlay(); showNote(); });
+    if (S.strikes >= STRIKES) return ending(S.fed >= (S.pellOk ? 2 : 4) ? 'pell' : 'repo');
+    if (S.night >= NIGHTS) return ending(S.fed >= FRIEND ? 'earl' : S.ignored >= 3 ? 'empty' : 'survived');
+    showGordonNote(() => { S.night++; nightSales = 0; nightTips = 0; served = 0; totalCust = 0; hideOverlay(); showNote(); });
   });
   $('bGo').focus();
 }
@@ -1340,12 +1488,13 @@ const ENDINGS = {
   empty:{eyebrow:'ENDING · EMPTY', title:'The fridge is open', text:'On the last morning the fridge door is hanging open. The worms are gone. The back of the fridge is gone. Cold air comes up from somewhere far below the shop, and it smells like lake water.'},
   deep_stay:{eyebrow:'ENDING · THE DEEP SHIFT', title:'You stay down', text:'You hang your apron next to Earl\'s. Up top, Dennis minds the shop on weekends and tells everyone you went fishing. Down here the light is green, the customers pay in sand dollars, and the fishing is unbelievable.'},
   deep_home:{eyebrow:'ENDING · THE DEEP SHIFT', title:'You go back up', text:'Earl walks you to the drain. "Somebody has to keep the lights on," he says. You climb back out through the fridge with a pocket full of sand dollars, and flip the sign to OPEN. Earl comes up for dinner on Sundays.'},
-  survived:{eyebrow:'ENDING · SURVIVED', title:'You made it to Saturday', text:'Dennis waves to you from the parking lot. The sun comes up over the lake. The fridge hums, as if Gordon hasn\'t made up his mind about you yet.'},
+  survived:{eyebrow:'ENDING · SURVIVED', title:'You made it through the week', text:'Dennis waves to you from the parking lot. The sun comes up over the lake. The fridge hums, as if Gordon hasn\'t made up his mind about you yet.'},
 };
 function ending(key){
   setPhase('end');
   const e = ENDINGS[key];
   unlock('end_' + key, true);
+  if (S.hard) unlock('week2', true);
   let extra = '';
   if (key === 'earl' && S.earlCall === 'home') extra += ' "You kept the lights on," he says. "I noticed."';
   if (key === 'earl' && S.gifts.includes('watch')) extra += ' He\'s very glad you found his watch.';
@@ -1356,7 +1505,7 @@ function ending(key){
   const canDive = key === 'earl';
   showOverlay(`
     <div class="titlecard" role="dialog" aria-label="Ending">
-      <p class="eyebrow">${e.eyebrow}</p>
+      <p class="eyebrow">${S.hard ? 'WEEK TWO · ' : ''}${e.eyebrow}</p>
       <h1>${e.title}</h1>
       <p>${e.text}${extra}</p>
       <div class="acts">${canDive ? '<button class="primary" id="dive">Follow Earl down (Night 6)</button>' : ''}<button ${canDive ? '' : 'class="primary"'} id="epiGo">The next morning</button></div>
@@ -1410,13 +1559,17 @@ function showTitle(){
     <h1>Night Shift at the Bait Shop</h1>
     <p>Uncle Earl went fishing three weeks ago and didn't come back. Now the bait shop is yours, along with his bank loan, his regulars, and whatever keeps knocking inside the fridge.</p>
     <p class="small">Five nights. Stock the fridge, ring up every item, make the bank's quota. Answer the phone. Sound on is best.</p>
-    <div class="acts"><button class="primary" id="go">${resume ? `Clock in (night ${S.night})` : 'Clock in'}</button><button id="jTitle">Journal (${n}/${ALL_SECRETS.length})</button>${found.has('end_earl') ? '<button id="tDeep" class="warn">The Deep Shift</button>' : ''}</div>
+    <div class="acts"><button class="primary" id="go">${resume ? `Clock in (night ${S.night})` : 'Clock in'}</button><button id="jTitle">Journal (${n}/${ALL_SECRETS.length})</button>${[...found].some(id => id.startsWith('end_')) ? '<button id="tHard">Week Two (harder)</button>' : ''}${found.has('end_earl') ? '<button id="tDeep" class="warn">The Deep Shift</button>' : ''}</div>
     <div class="row"><button id="tMusic">Turn on the radio</button><label class="radio"><span class="sr">Radio station</span><select id="radioTitle"></select></label></div>`;
   fillRadio($('radioTitle'));
   $('go').addEventListener('click', () => {
     audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode'); showNote();
   });
   $('jTitle').addEventListener('click', () => showJournal(hideOverlay));
+  $('tHard')?.addEventListener('click', () => {
+    audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode');
+    S = fresh(); S.hard = true; S.cash = 30; S.eventNext = rollEvent(); showNote();
+  });
   $('tDeep')?.addEventListener('click', () => {
     // replaying the Deep Shift from the title: a fresh run that has already reached Earl
     audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode');
@@ -1499,7 +1652,7 @@ function clock(){
 function updHUD(){
   if (!S) return;
   const q = quota(), met = nightSales >= q;
-  $('hNight').textContent = S.deep ? 'NIGHT 6 · THE DEEP' : `NIGHT ${S.night}/5`;
+  $('hNight').textContent = S.deep ? 'THE DEEP SHIFT' : `${S.hard ? 'WEEK 2 · ' : ''}NIGHT ${S.night}/${NIGHTS}`;
   $('hClock').textContent = clock();
   $('hQuota').textContent = `${S.deep ? 'TOLL' : 'QUOTA'} $${nightSales}/$${q}`;
   $('hQuota').className = met ? 'met' : '';
@@ -1549,6 +1702,7 @@ function hit(p){
     if (((p[0] - hh.cx) / hh.rx) ** 2 + ((p[1] - hh.cy) / hh.ry) ** 2 <= 1.3) return {t:'hatch'};
     return null;
   }
+  if (rac && rac.at <= 0 && rac.t > 0 && in_(p, {x:30, y:200, w:110, h:96})) return {t:'raccoon'};
   if (esc) for (let i = 0; i < esc.bugs.length; i++){ const b = esc.bugs[i]; if (Math.hypot(p[0] - b.x, p[1] - b.y) < 24) return {t:'bug', i}; }
   if (ph.ring > 0 && in_(p, {x:166, y:94, w:40, h:72})) return {t:'phone'};
   if (S.tape === 'out' && in_(p, {x:378, y:64, w:36, h:26})) return {t:'tape'};
@@ -1564,7 +1718,8 @@ const toLogical = e => { const r = cv.getBoundingClientRect(); return [(e.client
 cv.addEventListener('click', e => {
   audio();
   const h = hit(toLogical(e)); if (!h) return;
-  if (h.t === 'peek') nameWorm();
+  if (h.t === 'raccoon') shooRaccoon();
+  else if (h.t === 'peek') nameWorm();
   else if (h.t === 'sign') knockSign();
   else if (h.t === 'tape') playTape();
   else if (h.t === 'keypad') openKeypad();
@@ -1585,7 +1740,7 @@ let pellKnock = 0, heartT = 0;
 function update(dt){
   if (cust){ const tgt = cust.anim === 'out' ? 480 : 0; cust.ax += (tgt - cust.ax) * Math.min(1, dt * 6); }
   if ((phase === 'order' || phase === 'change') && cust){
-    cust.patience -= dt * cust.rate * (S.powerOff ? 1.25 : 1) * (S.up.bell ? .75 : 1);
+    cust.patience -= dt * cust.rate * (S.powerOff ? 1.25 : 1) * (S.up.bell ? .75 : 1) * (S.hard ? 1.2 : 1) * (storm.dark > 0 ? 1.25 : 1);
     if (cust.patience <= 0){ cust.patience = 0; leave('angry', pick(['Forget it.','I\'ll dig my own worms.','Unbelievable.','Earl was faster than this.'])); }
   }
   const pat = $('pat'), p = cust && !cust.talk ? Math.max(0, cust.patience) : (cust ? 1 : 0);
@@ -1610,6 +1765,7 @@ function update(dt){
     tickWater(dt);
     tickEscape(dt);
     tickFetch(dt);
+    tickEvents(dt);
     tickPeek(dt);
     // the wall phone
     if (!ph.done && !onCall){
@@ -1619,7 +1775,7 @@ function update(dt){
         if (ph.ring <= 0){
           ph.done = true; $('phoneBtn').hidden = true;
           toast('The phone stops ringing.');
-          if (S.night === 5) S.missedEarl = true;
+          if (S.night === NIGHTS) S.missedEarl = true;
         }
       } else {
         ph.at -= dt;
@@ -1736,7 +1892,7 @@ const eyeCount = () => [2, 2, 3, 3, 5][stage()];
 function draw(t){
   const b = RM ? 0 : Math.floor(t * 7);
   const r = k => R(b * 131 + k * 7919 + 1);
-  const dark = S && S.powerOff;
+  const dark = S && (S.powerOff || (storm.dark > 0 && S.event === 'storm'));
   const flick = !dark && !RM && Math.random() < .012;
   const on = !dark && !flick;
   ctx.save();
@@ -1753,6 +1909,7 @@ function draw(t){
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
   }
+  if (S && S.event === 'storm' && storm.flash > 0){ ctx.fillStyle = `rgba(235,245,255,${storm.flash * 1.4})`; ctx.fillRect(-20, -20, W + 40, H + 40); }
   if (S && S.deep){
     // underwater: blue wash, slanting light, rising bubbles
     ctx.fillStyle = 'rgba(16,70,120,.34)'; ctx.fillRect(-20, -20, W + 40, H + 40);
@@ -1868,7 +2025,7 @@ function drawOutside(t, r, day){
   shape(ell(158, 342, 16, 16, 12), '#1a1a1a', 2, r(324), true);
 }
 function drawShop(t, r, on){
-  const dark = S && S.powerOff;
+  const dark = S && (S.powerOff || (storm.dark > 0 && S.event === 'storm'));
   ctx.fillStyle = on ? '#33483f' : '#18221f'; ctx.fillRect(-20, -20, W + 40, H + 40);
   ctx.fillStyle = on ? '#29392f' : '#121a17';
   for (let y = 44; y < 290; y += 22) for (let x = 196; x < 590; x += 22){ ctx.beginPath(); ctx.arc(x, y, 2, 0, 7); ctx.fill(); }
@@ -1876,7 +2033,12 @@ function drawShop(t, r, on){
   // door + night outside
   shape(rect(26, 66, 144, 232), '#1c2c30', 3, r(1));
   shape(rect(42, 84, 112, 116), '#0a1428', 2, r(2));
-  ctx.fillStyle = '#e8e2b8'; ctx.beginPath(); ctx.arc(122, 112, 10, 0, 7); ctx.fill();
+  if (S && S.event === 'moon'){ ctx.save(); ctx.shadowColor = '#fff6c8'; ctx.shadowBlur = 20; ctx.fillStyle = '#f7f0cc'; ctx.beginPath(); ctx.arc(110, 124, 24, 0, 7); ctx.fill(); ctx.restore(); }
+  else if (!(S && S.event === 'storm')){ ctx.fillStyle = '#e8e2b8'; ctx.beginPath(); ctx.arc(122, 112, 10, 0, 7); ctx.fill(); }
+  if (S && S.event === 'storm'){
+    ctx.strokeStyle = 'rgba(170,190,230,.7)'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 16; i++){ const x = 44 + scatter(i) * 108, y = 86 + ((t * 260 + scatter(i + 40) * 112) % 112); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 3, Math.min(198, y + 10)); ctx.stroke(); }
+  }
   ctx.fillStyle = '#aeb8d6'; [[60,100],[84,150],[140,170],[70,180]].forEach(([x,y]) => ctx.fillRect(x, y, 2, 2));
   const open = S && !['stock','start','note','between','end'].includes(phase);
   const neon = open && !dark;
@@ -2010,6 +2172,22 @@ function drawShop(t, r, on){
   if (reach){
     const p = reach.t / reach.dur, k = p < .5 ? p / .5 : 1 - (p - .5) / .5;
     tentacle(610, 200, 610 + (reach.x - 610) * k, 200 + (reach.y - 200) * k, reach.y < 200 ? 16 : 12, t, reach.y < 200 ? 40 : 20);
+  }
+  if (rac && rac.at <= 0 && rac.t > 0){
+    const pop = Math.min(1, (7 - rac.t) / .4), wig = RM ? 0 : Math.sin(t * 8) * 3;
+    ctx.save(); ctx.translate(70, 296 - 44 * pop);
+    ctx.beginPath(); ctx.moveTo(26, 30); ctx.quadraticCurveTo(58, 10 + wig, 62, -14);
+    ctx.lineCap = 'round'; ctx.lineWidth = 16; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 11; ctx.strokeStyle = '#8f9594'; ctx.stroke();
+    ctx.setLineDash([5, 6]); ctx.strokeStyle = '#3a3f3e'; ctx.stroke(); ctx.setLineDash([]);
+    shape(ell(0, 24, 30, 22, 14), '#8f9594', 3, r(150), true);
+    shape([[-20, -8],[-26, -30],[-8, -18]], '#8f9594', 2, r(151));
+    shape([[20, -8],[26, -30],[8, -18]], '#8f9594', 2, r(152));
+    shape(ell(0, 0, 24, 18, 14), '#a9afae', 3, r(153), true);
+    shape(ell(0, -2, 22, 7, 12), '#2a2a33', 1, r(154), true, 1.5);
+    ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(-9, -3, 3.5, 0, 7); ctx.arc(9, -3, 3.5, 0, 7); ctx.fill();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(-8, -2, 1.6, 0, 7); ctx.arc(10, -2, 1.6, 0, 7); ctx.arc(0, 8, 3, 0, 7); ctx.fill();
+    ctx.restore();
+    text(`shoo! ${Math.ceil(rac.t)}`, 70, 212, 20, '#ffb35a', 'Gaegu', -.05);
   }
   // escaped crickets hopping around the shop
   if (esc){
@@ -2153,6 +2331,7 @@ function drawCust(c, t, r){
     if (L.glowy){ ctx.save(); ctx.shadowColor = '#9dff7a'; ctx.shadowBlur = 24; }
     shape(ell(0, -h / 2, w, h / 2 + 6, 18), L.color, 5, r(110), true);
     if (L.glowy) ctx.restore();
+    if (L.camera){ shape(rect(-16, -h * .38, 32, 20), '#2a2a33', 1.5, r(125), false, 2); ctx.fillStyle = '#8cc6e6'; ctx.beginPath(); ctx.arc(0, -h * .38 + 10, 6, 0, 7); ctx.fill(); }
     if (L.tie) shape([[0, -h * .42],[8, -h * .3],[0, -h * .1],[-8, -h * .3]], L.kind === 'landlord' ? '#c24b3c' : '#3c5a8a', 2, r(111), false, 2);
     if (L.shades) shape(rect(-ex - 16, ey - 9, ex * 2 + 32, 18), '#15181a', 1.5, r(119), false, 2.5);
     else if (L.kind === 'lake'){ for (const s of [-1, 1]){ ctx.beginPath(); ctx.arc(s * ex, ey, 8, .2, Math.PI - .2); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke(); } }
