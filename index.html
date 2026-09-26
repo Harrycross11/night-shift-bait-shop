@@ -1,0 +1,2207 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Night Shift at the Bait Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=VT323&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0c1416;--panel:#142024;--line:#2a3b3d;--ink:#e6eed3;--dim:#93a79c;
+  --glow:#d6f07f;--worm:#ec8e88;--bad:#ff735e;--cash:#23361f;--cashline:#4d6b3a;
+  --paper:#efe9da;--paperInk:#262219;--paperDim:#9a927f;--pen:#2b3f7a;
+}
+body{background:var(--bg);color:var(--ink);font:21px/1.35 'Gaegu','Comic Neue','Segoe Print',cursive;padding-inline:16px}
+.wrap{max-width:880px;margin:0 auto;padding-block:18px 28px;display:flex;flex-direction:column;gap:12px}
+.hud{display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:space-between;align-items:center;font-family:'VT323',ui-monospace,monospace;font-size:24px;letter-spacing:.04em;color:var(--ink);font-variant-numeric:tabular-nums}
+.hud .dim{color:var(--dim)}
+.hud .met{color:var(--glow)}
+.quota{display:flex;align-items:center;gap:8px}
+.qbar{width:90px;height:10px;border:2px solid var(--line);border-radius:5px;overflow:hidden}
+.qbar i{display:block;height:100%;width:0;background:var(--worm);transition:width .3s}
+.qbar i.met{background:var(--glow)}
+.hud button{font:400 20px/1 'VT323',monospace;padding:3px 8px;letter-spacing:.06em}
+.radio select{font:400 20px/1 'VT323',monospace;letter-spacing:.04em;color:var(--glow);background:var(--panel);border:2px solid #3c5250;border-radius:10px 4px 9px 5px;padding:4px 6px;cursor:pointer;max-width:100%}
+.radio select:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+#titleBox .radio select{font-size:22px;padding:7px 8px}
+.stage{position:relative}
+canvas{box-sizing:border-box;display:block;width:100%;max-width:100%;height:auto;aspect-ratio:800/380;border:3px solid #050a0b;border-radius:10px 4px 12px 6px;touch-action:manipulation;background:#000}
+.toast{position:absolute;left:50%;top:10px;transform:translateX(-50%);width:max-content;max-width:88%;background:rgba(8,14,15,.9);border:2px solid var(--line);padding:3px 14px;border-radius:8px;font-size:19px;text-align:center;pointer-events:none}
+.talk{background:var(--panel);border:2px solid var(--line);border-radius:12px 6px 14px 5px;padding:10px 14px;min-height:96px}
+.who{display:flex;align-items:center;gap:12px;justify-content:space-between;color:var(--glow);font-weight:700}
+.pat{flex:0 0 120px;height:12px;border:2px solid var(--line);border-radius:6px;overflow:hidden}
+.pat i{display:block;height:100%;width:100%;background:var(--glow)}
+.pat i.low{background:var(--bad)}
+#line{margin:4px 0 0;font-size:23px;min-height:1.4em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.desk{min-height:190px}
+.panel{display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row .lbl{color:var(--dim);font-size:18px;min-width:5.5em}
+.counter{color:var(--dim);margin:0}
+.counter b{color:var(--ink)}
+button{font:700 20px/1.1 'Gaegu','Comic Neue',cursive;color:var(--ink);background:var(--panel);border:2px solid #3c5250;border-radius:12px 5px 11px 6px;padding:8px 12px;cursor:pointer;transition:transform .08s,border-color .15s}
+button:hover{transform:rotate(-1deg) translateY(-1px);border-color:var(--glow)}
+button:active{transform:translateY(1px) scale(.97)}
+button:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none;border-color:#3c5250}
+.primary{background:var(--glow);color:#10180c;border-color:var(--glow)}
+.warn{background:#4a1f1a;border-color:var(--bad)}
+.glowbtn{border-color:#9dff7a;color:#c9ffb5}
+.acts{display:flex;gap:10px;flex-wrap:wrap}
+.acts .primary{flex:1}
+.reg{font-family:'VT323',monospace;font-size:26px;color:var(--glow);margin:0;font-variant-numeric:tabular-nums}
+.cash{display:flex;gap:8px;flex-wrap:wrap}
+.cash button{min-width:76px;background:var(--cash);border-color:var(--cashline)}
+.hint{color:var(--dim);margin:0;font-size:19px}
+.overlay{position:fixed;inset:0;background:rgba(4,8,9,.86);display:grid;place-items:center;padding:16px;overflow:auto;z-index:5}
+.titlecard{max-width:520px;width:100%;display:flex;flex-direction:column;gap:12px}
+.titlecard h1{font-size:clamp(42px,9vw,68px);line-height:.92;margin:0;text-wrap:balance;color:var(--glow);transform:rotate(-2deg);font-weight:700}
+.titlecard p{margin:0}
+.eyebrow{font-family:'VT323',monospace;letter-spacing:.12em;color:var(--worm);font-size:22px}
+.small{color:var(--dim);font-size:18px}
+.stats{font-family:'VT323',monospace;font-size:22px;color:var(--dim);display:grid;gap:2px}
+.receipt{background:var(--paper);color:var(--paperInk);font-family:'VT323',monospace;font-size:22px;padding:22px 22px 26px;max-width:420px;width:100%;box-shadow:0 12px 34px rgba(0,0,0,.55);transform:rotate(.6deg);font-variant-numeric:tabular-nums}
+.receipt h2{font-size:28px;text-align:center;margin:0 0 8px;letter-spacing:.08em;font-weight:400}
+.receipt .r{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.receipt hr{border:0;border-top:2px dashed var(--paperDim);margin:10px 0}
+.receipt .big{font-size:27px}
+.receipt .lbl{margin:0 0 4px;letter-spacing:.1em}
+.receipt .note{font-family:'Gaegu',cursive;font-size:20px;color:#5b4a2e;margin:10px 0 6px}
+.receipt .bad{color:#a8321f}
+.receipt .good{color:#3b6a1f}
+.receipt .fine{font-size:18px;color:#6d6552;margin:2px 0 0}
+.receipt button{background:var(--paperInk);color:var(--paper);border-color:var(--paperInk)}
+.receipt .go{width:100%;margin-top:6px}
+.step{display:flex;align-items:center;gap:6px}
+.step button{font-family:'VT323',monospace;font-size:22px;padding:0 10px;line-height:1.2;background:transparent;color:var(--paperInk);border:2px solid var(--paperDim)}
+.step output{min-width:2ch;text-align:center}
+.receipt input{width:18px;height:18px;accent-color:#262219;vertical-align:-2px;margin-right:6px}
+.notebook{max-width:460px;width:100%;color:var(--pen);font-family:'Gaegu',cursive;font-size:23px;line-height:32px;padding:28px 26px 22px 54px;
+  background:repeating-linear-gradient(#f4efdf 0 31px,#b9cbe0 31px 32px);position:relative;box-shadow:0 12px 34px rgba(0,0,0,.55);transform:rotate(-.8deg)}
+.notebook::before{content:"";position:absolute;left:38px;top:0;bottom:0;width:2px;background:#e59a9a}
+.notebook h2{font-size:22px;margin:0;line-height:32px;color:#8a4a3a;font-weight:700}
+.notebook p{margin:0 0 32px}
+.notebook .sig{text-align:right}
+.notebook button{margin-top:4px;background:var(--pen);color:#f4efdf;border-color:var(--pen);width:100%}
+.titlemode .hud,.titlemode .talk,.titlemode .desk{display:none}
+#titleBox{display:flex;flex-direction:column;gap:12px;max-width:620px}
+#titleBox h1{font-size:clamp(42px,9vw,72px);line-height:.92;margin:0;text-wrap:balance;color:var(--glow);transform:rotate(-2deg);font-weight:700}
+#titleBox p{margin:0}
+.phonebtn{position:absolute;left:10px;bottom:10px;background:#4a1f1a;border-color:var(--bad);animation:ring .5s ease-in-out infinite alternate}
+@keyframes ring{from{transform:rotate(-2deg)}to{transform:rotate(2deg)}}
+.gnote{max-width:420px;width:100%;background:#d9e4d2;color:#2e3b33;font-family:'Gaegu',cursive;padding:26px 24px 22px;box-shadow:0 12px 34px rgba(0,0,0,.55);transform:rotate(1.2deg);
+  border-radius:4px 10px 6px 14px;display:flex;flex-direction:column;gap:14px;background-image:radial-gradient(circle at 80% 20%,rgba(120,160,130,.35),transparent 40%),radial-gradient(circle at 15% 85%,rgba(120,160,130,.3),transparent 35%)}
+.gnote .from{font-family:'VT323',monospace;letter-spacing:.1em;color:#5f7a68;font-size:20px;margin:0}
+.gnote .scrawl{font-size:34px;line-height:1.05;margin:0;font-weight:700;letter-spacing:.02em;transform:rotate(-1.5deg)}
+.gnote .reply{font-size:26px;margin:0;color:#8a4a3a}
+.gnote button{background:#2e3b33;color:#d9e4d2;border-color:#2e3b33;text-align:left}
+.journal{max-width:560px;width:100%;background:var(--panel);border:2px solid var(--line);border-radius:12px 6px 14px 5px;padding:20px 22px;display:flex;flex-direction:column;gap:12px;max-height:88vh;overflow:auto}
+.journal h2{margin:0;color:var(--glow);font-size:34px}
+.journal h3{margin:6px 0 0;font-family:'VT323',monospace;font-weight:400;letter-spacing:.12em;color:var(--worm);font-size:20px}
+.journal ul{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.journal li{display:flex;gap:10px;align-items:baseline}
+.journal li b{font-family:'VT323',monospace;font-weight:400;color:var(--glow);flex:0 0 1.2em}
+.journal li.no{color:var(--dim)}
+.journal li.no b{color:var(--line)}
+@media (prefers-reduced-motion:reduce){button{transition:none}button:hover,button:active{transform:none}.titlecard h1,.receipt,.notebook,.gnote,#titleBox h1{transform:none}.qbar i{transition:none}.phonebtn{animation:none}}
+</style>
+
+<div class="wrap">
+  <header class="hud">
+    <span id="hNight">NIGHT 1/5</span>
+    <span id="hClock" class="dim">11:00 PM</span>
+    <span class="quota"><span id="hQuota">QUOTA $0/$25</span><span class="qbar"><i id="qbar"></i></span></span>
+    <span id="hCash">DRAWER $20</span>
+    <span class="row"><label class="radio"><span class="sr">Radio station</span><select id="radio"></select></label><button id="mute" aria-pressed="false">SOUND ON</button></span>
+  </header>
+
+  <div class="stage">
+    <canvas id="cv" aria-label="The bait shop. Click the fridge to open it, click items on the counter to scan them."></canvas>
+    <div id="toast" class="toast" hidden></div>
+    <button id="phoneBtn" class="phonebtn" hidden>Answer the phone</button>
+  </div>
+
+  <section id="titleBox" hidden></section>
+
+  <div class="talk">
+    <div class="who"><span id="who">&nbsp;</span><div class="pat" title="Patience"><i id="pat"></i></div></div>
+    <p id="line" aria-hidden="true"></p>
+    <span id="lineSr" class="sr" aria-live="polite"></span>
+  </div>
+
+  <div class="desk">
+    <section id="pStock" class="panel" hidden>
+      <p class="hint">The delivery is on the counter. Put it in the fridge before you open. Worms left in the box die by morning.</p>
+      <div class="acts"><button id="sFridge">Open the fridge</button><button id="sOpen" class="primary">Flip the sign to OPEN</button></div>
+    </section>
+
+    <section id="pOrder" class="panel" hidden>
+      <p class="counter" id="counterTxt"></p>
+      <div class="row">
+        <button id="oFridge">Open the fridge</button>
+        <button id="oCoffee">Pour a coffee</button>
+        <button id="oScan">Scan next item</button>
+        <button id="oBack">Put it all back</button>
+        <button id="oGordon" class="warn" hidden>Ask Gordon to fetch it</button>
+      </div>
+      <div class="acts"><button id="oTotal" class="primary">Total it up</button><button id="oAway">Send them away</button></div>
+    </section>
+
+    <section id="pFridge" class="panel" hidden>
+      <div class="row"><span class="lbl">Take out</span>
+        <button id="ft_worm"></button><button id="ft_glow" class="glowbtn"></button><button id="ft_cricket"></button><button id="ft_minnow"></button></div>
+      <div class="row"><span class="lbl">Put away</span>
+        <button id="fb_worm"></button><button id="fb_glow" class="glowbtn"></button><button id="fb_cricket"></button><button id="fb_minnow"></button></div>
+      <div class="acts"><button id="fFeed" class="warn" hidden>Feed Gordon</button><button id="fWater">Change the minnow water</button><button id="fClose" class="primary">Close the fridge</button></div>
+    </section>
+
+    <section id="pChange" class="panel" hidden>
+      <p class="reg">PAID $<span id="cPaid">0</span> &middot; TOTAL $<span id="cTot">0</span></p>
+      <p class="hint">Count out their change. In your hand: <b id="cPile">$0</b></p>
+      <div class="cash"><button data-d="1">$1</button><button data-d="5">$5</button><button data-d="10">$10</button></div>
+      <div class="acts"><button id="cUndo">Start over</button><button id="cGive" class="primary">Hand it over</button></div>
+    </section>
+
+    <section id="pTalk" class="panel" hidden>
+      <div class="acts" id="talkActs"></div>
+    </section>
+
+    <section id="pPhone" class="panel" hidden>
+      <p class="hint">You're on the phone. The customer is still waiting.</p>
+      <div class="acts" id="phoneActs"></div>
+    </section>
+
+    <p id="pIdle" class="hint" hidden>Waiting for the door.</p>
+  </div>
+</div>
+
+<div id="overlay" class="overlay"></div>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const cv = $('cv');
+let ctx = cv.getContext('2d');  // swapped briefly to draw the epilogue picture
+const W = 800, H = 380, INK = '#101814', PINK = '#e98b86';
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const dpr = Math.min(2, window.devicePixelRatio || 1);
+cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+const ITEMS = {
+  worm:    {name:'Worms',    s:'cup of worms',    p:'cups of worms',    price:2, cost:1},
+  glow:    {name:'Glowing',  s:'glowing cup of worms', p:'glowing cups of worms', price:2},
+  cricket: {name:'Crickets', s:'bag of crickets', p:'bags of crickets', price:3, cost:2},
+  minnow:  {name:'Minnows',  s:'bag of minnows',  p:'bags of minnows',  price:4, cost:2},
+  coffee:  {name:'Coffee',   s:'coffee',          p:'coffees',          price:1},
+};
+const KEYS = ['worm','cricket','minnow','coffee'];     // things customers order
+const STOCK = ['worm','glow','cricket','minnow'];      // things that live in the fridge
+const NUM = ['zero','one','two','three','four','five','six','seven','eight'];
+const POWER = 8, QUOTA = [25, 30, 35, 40, 45, 40];  // night 6 is the lake's toll
+// Night 6 happens at the bottom of the lake: the same items, reskinned as things that fell in
+const SURFACE_SKIN = {}, DEEP_SKIN = {
+  worm:{name:'Keys', s:'set of keys', p:'sets of keys'},
+  glow:{name:'Glowing keys', s:'glowing set of keys', p:'glowing sets of keys'},
+  cricket:{name:'Socks', s:'single sock', p:'single socks'},
+  minnow:{name:'Chargers', s:'phone charger', p:'phone chargers'},
+  coffee:{name:'Air', s:'jar of air', p:'jars of air'},
+};
+const nSlots = () => S.slots.length;
+const PRICE_RANGE = {worm:[1, 4], cricket:[2, 6], minnow:[2, 7]};
+// what the item sells for today (the shop's price, not the usual one)
+const price = k => k === 'coffee' ? 1 + (S && S.up.espresso ? 1 : 0) : k === 'glow' ? S.prices.worm : S.prices[k];
+const UPGRADES = [
+  {id:'fridge',   name:'BIGGER FRIDGE',       desc:'6 more spaces', cost:15},
+  {id:'scanner',  name:'SCANNER GUN',         desc:'one click scans the whole counter', cost:12},
+  {id:'bell',     name:'"PLEASE WAIT" BELL',  desc:'customers wait 25% longer', cost:10},
+  {id:'espresso', name:'ESPRESSO MACHINE',    desc:'coffee sells for $2, more people want one', cost:8},
+  {id:'pump',     name:'MINNOW AIR PUMP',     desc:'the minnow water never goes bad', cost:6},
+  {id:'lids',     name:'CRICKET LIDS',        desc:'crickets can\'t escape their bags', cost:4},
+];
+const FRIEND = 6;  // Gordon points needed for the good ending
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const o = (p = {}) => ({worm:0, cricket:0, minnow:0, coffee:0, glow:0, ...p});
+const total = ord => Object.keys(ord).reduce((s, k) => s + ord[k] * price(k), 0);
+function orderText(ord){
+  const parts = [...KEYS, 'glow'].filter(k => ord[k] > 0).map(k =>
+    ord[k] === 1 ? (k === 'coffee' ? 'a coffee' : 'one ' + ITEMS[k].s) : NUM[ord[k]] + ' ' + ITEMS[k].p);
+  if (!parts.length) return 'nothing';
+  return parts.length > 1 ? parts.slice(0, -1).join(', ') + ' and ' + parts.at(-1) : parts[0];
+}
+const cap = s => s[0].toUpperCase() + s.slice(1);
+
+// ---------- state ----------
+function fresh(){
+  skin(false);
+  const slots = Array(18).fill(null);
+  ['worm','worm','worm','worm','worm','worm','worm','worm','cricket','cricket','cricket','minnow','minnow','minnow'].forEach((k, i) => slots[i] = k);
+  return {night:1, cash:20, slots, box:{worm:3, glow:0, cricket:0, minnow:1}, fed:0, ignored:0, strikes:0, missedLast:false,
+    quotasMet:0, powerOff:false, gifts:[], milo:0, barbGlow:false, truckDeals:0,
+    trust:0, replies:[], pellOk:false, down:false, earlCall:null, missedEarl:false,
+    prices:{worm:2, cricket:3, minnow:4}, up:{}, water:100,
+    tape:null, wormName:null, lakeCalled:false, vicFree:false, vicMad:false, deep:false, deepChoice:null, lastEnding:null};
+}
+function skin(deep){
+  if (!SURFACE_SKIN.worm) Object.keys(DEEP_SKIN).forEach(k => SURFACE_SKIN[k] = {name:ITEMS[k].name, s:ITEMS[k].s, p:ITEMS[k].p});
+  Object.entries(deep ? DEEP_SKIN : SURFACE_SKIN).forEach(([k, v]) => Object.assign(ITEMS[k], v));
+}
+function startDeep(){
+  // keep the run's story (Gordon, the worm's name, Earl's call), reset the shop for the lake bottom
+  S.deep = true; S.night = 6; S.powerOff = false; S.missedLast = false; S.deepChoice = null;
+  S.slots = Array(18).fill(null);
+  ['worm','worm','worm','worm','worm','worm','worm','worm','cricket','cricket','cricket','cricket','cricket','minnow','minnow','minnow','minnow','minnow'].forEach((k, i) => S.slots[i] = k);
+  S.box = {worm:4, glow:0, cricket:2, minnow:2};
+  skin(true); unlock('deep');
+  if (track >= 0) setTrack(0);
+  hideOverlay(); showNote();
+}
+
+// ---------- journal of secrets (kept in this browser across runs) ----------
+const SECRETS = [
+  {group:'Endings', items:[
+    {id:'end_survived', name:'You made it to Saturday', hint:'Survive the week.'},
+    {id:'end_earl', name:'Earl comes back up', hint:'Take very good care of Gordon.'},
+    {id:'end_empty', name:'The fridge is open', hint:'Ignore the knocking. Often.'},
+    {id:'end_repo', name:'The bank takes the shop', hint:'Miss the bank\'s number twice.'},
+    {id:'end_pell', name:'Pell counts the stock', hint:'Lose the shop, but have a friend in the fridge.'},
+  ]},
+  {group:'Gifts from the fridge', items:[
+    {id:'gift_five', name:'A wet $5 bill', hint:'Feed him.'},
+    {id:'gift_lure', name:'Earl\'s carved lure', hint:'Feed him more.'},
+    {id:'gift_one', name:'A damp $1 bill', hint:'Keep feeding him.'},
+    {id:'gift_watch', name:'Earl\'s wristwatch', hint:'Feed him on night 3 or later.'},
+    {id:'gift_photo', name:'The photo', hint:'Feed him on night 4 or later.'},
+  ]},
+  {group:'Stories', items:[
+    {id:'milo', name:'Milo\'s drawing', hint:'Be generous with a small customer.'},
+    {id:'barb', name:'Barb\'s big catch', hint:'Give Barb what she\'s really after.'},
+    {id:'dennis', name:'Dennis says goodnight', hint:'Keep the shop open until the last night.'},
+    {id:'earl_call', name:'A call from far below', hint:'Answer the phone on the last night.'},
+    {id:'prank', name:'Is your fridge running?', hint:'Pick up the phone on night 3.'},
+    {id:'truck', name:'Tournament money', hint:'Make a deal with the guy in the truck.'},
+    {id:'glow', name:'His favorite', hint:'Try Vic\'s worms.'},
+    {id:'gordon_full', name:'Gordon, fully grown', hint:'Feed him. A lot.'},
+    {id:'pen_pals', name:'Pen pals', hint:'Answer every note from the fridge.'},
+    {id:'fetch', name:'Gordon fetches the order', hint:'Earn his trust, then ask him for help.'},
+    {id:'scare', name:'Gordon handles it', hint:'Let him deal with a rude customer.'},
+    {id:'vic', name:'Where the glow comes from', hint:'Ask Vic the right questions.'},
+  ]},
+  {group:'The Deep', items:[
+    {id:'deep', name:'The Deep Shift', hint:'Get the Earl ending, then follow him down.'},
+    {id:'dworm', name:'Dennis\'s worm', hint:'Someone Dennis let go swam a long way.'},
+    {id:'mom', name:'Gordon\'s mom', hint:'Every Gordon has a mother.'},
+    {id:'end_deep_stay', name:'Ending: You stay down', hint:'Give Earl one answer.'},
+    {id:'end_deep_home', name:'Ending: You go back up', hint:'Give Earl the other answer.'},
+  ]},
+  {group:'Hidden', items:[
+    {id:'tape', name:'Earl\'s mixtape', hint:'Some signs are hiding something. Try knocking.'},
+    {id:'named', name:'A worm with a name', hint:'Keep an eye on the worm cups.'},
+    {id:'lake', name:'The woman from the lake', hint:'The register remembers the year Earl opened.'},
+  ]},
+];
+const ALL_SECRETS = SECRETS.flatMap(g => g.items);
+let found = new Set();
+try { found = new Set(JSON.parse(localStorage.getItem('baitshop-journal') || '[]')); } catch(e) {}
+function unlock(id, quiet){
+  if (found.has(id)) return;
+  found.add(id);
+  try { localStorage.setItem('baitshop-journal', JSON.stringify([...found])); } catch(e) {}
+  const s = ALL_SECRETS.find(x => x.id === id);
+  if (s && !quiet) setTimeout(() => toast(`New journal entry: ${s.name}`, 3), 1600);
+}
+function showJournal(back){
+  showOverlay(`
+    <div class="journal" role="dialog" aria-label="Journal">
+      <h2>Journal &middot; ${ALL_SECRETS.filter(s => found.has(s.id)).length}/${ALL_SECRETS.length}</h2>
+      ${SECRETS.map(g => `<h3>${g.group.toUpperCase()}</h3><ul>${g.items.map(s => found.has(s.id)
+        ? `<li><b>&#10003;</b><span>${s.name}</span></li>`
+        : `<li class="no"><b>?</b><span>${s.hint}</span></li>`).join('')}</ul>`).join('')}
+      <div class="acts"><button class="primary" id="jBack">Close the journal</button></div>
+    </div>`);
+  $('jBack').addEventListener('click', back);
+  $('jBack').focus();
+}
+
+// ---------- phone calls ----------
+const CALLS = [
+  {who:'Mr. Pell (on the phone)', line:'Pell here, from the bank. Just checking you\'re open. The bank likes it when you\'re open.', choices:[
+    {label:'We\'re open!', go:() => 'Good. Remember the number.'},
+    {label:'Who gave you this number?', go:() => 'It\'s the shop\'s number. It\'s on the sign.'}]},
+  {who:'Vic (on the phone)', line:'Vic here. You want the glowing stuff, put it on the order sheet. Three for a dollar. Don\'t ask me where they come from.', choices:[
+    {label:'Where do they come from?', go:() => 'I said don\'t ask. ...They come up the drain. Vic out.'},
+    {label:'Thanks, Vic', go:() => 'Vic out.'}]},
+  {who:'Unknown caller', line:'Heh. Hey. Is your refrigerator running?', choices:[
+    {label:'...Yes?', go:() => { unlock('prank'); setTimeout(() => { thump(true); toast('The fridge thumps once. Gordon thought that was funny.'); }, 1400); return 'Well you better go catch it! HAHAHA.'; }},
+    {label:'It has legs, actually', go:() => { unlock('prank'); return '...What? What does that mean?'; }}]},
+  {who:'Mr. Pell (on the phone)', line:'The number tonight is $40. If the bank takes the shop, we auction everything. Including the fridge.', choices:[
+    {label:'I\'ll make the number', go:() => 'We\'ll see.'},
+    {label:'What happens to what\'s inside the fridge?', go:() => { setTimeout(() => { thump(true); toast('The fridge knocks, very hard.'); }, 1000); return 'We dispose of the contents. Why?'; }}]},
+  {who:'Earl (very bad line)', line:'Kid? It\'s Earl. The line\'s bad, I\'m pretty far down. Is Gordon eating okay?', choices:[
+    {label:'He\'s eating great', go:() => { S.earlCall = 'fine'; unlock('earl_call'); return S.fed >= 4 ? 'Good. I can tell. The water gets warmer down here when he\'s happy.' : 'Kid. I can tell when you\'re fibbing. Feed him.'; }},
+    {label:'Where ARE you?', go:() => { S.earlCall = 'where'; unlock('earl_call'); return 'Under the lake. Under under. There\'s a whole town down here. I\'ll explain when I-- (static)'; }},
+    {label:'Come home, Earl', go:() => { S.earlCall = 'home'; unlock('earl_call'); return 'Soon, kid. Keep the lights on for me.'; }}]},
+];
+let ph = {at:0, ring:0, done:true, acc:0}, onCall = false, call = null;
+function answer(){
+  if (ph.ring <= 0 || onCall) return;
+  audio();
+  ph.ring = 0; ph.done = true; onCall = true; call = CALLS[S.night - 1];
+  $('phoneBtn').hidden = true;
+  tone(900,.05,'square',.03);
+  say(call.who, call.line);
+  renderButtons('phoneActs', call.choices.map(c => ({label:c.label, go:() => {
+    say(call.who, c.go());
+    renderButtons('phoneActs', [{label:'Hang up', go:hangUp}]);
+  }})));
+  updAll();
+}
+function hangUp(){
+  onCall = false; call = null; tone(500,.08,'square',.03);
+  if (cust && cust.anim === 'in') say(cust.name, cust.line); else say('', '');
+  updAll();
+}
+function renderButtons(id, list){
+  const box = $(id); box.innerHTML = '';
+  list.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.textContent = c.label; b.className = i === 0 ? 'primary' : '';
+    b.addEventListener('click', c.go);
+    box.appendChild(b);
+  });
+  box.querySelector('button')?.focus({preventScroll:true});
+}
+
+// ---------- notes from the fridge (between nights, once Gordon has been fed) ----------
+const GNOTES = [
+  {txt:'hello. are you earl', a:[
+    {label:'I\'m Earl\'s family. I\'m running the shop now.', kind:1, reply:'ok. hello earl family'},
+    {label:'Who is this? How did you get in my fridge?', kind:0, reply:'i live here. before earl. before fridge'}]},
+  {txt:'earl fed me every night. will you', a:[
+    {label:'Every night. I promise.', kind:1, reply:':)'},
+    {label:'Only if the numbers work out.', kind:0, reply:'ok. numbers'}]},
+  {txt:'pell smells like pennies. can i eat him', a:[
+    {label:'No! You cannot eat the banker.', kind:1, reply:'ok. (sad)'},
+    {label:'...Maybe. If he takes the shop.', kind:0, key:'pellOk', reply:'!!!!!!'}]},
+  {txt:'tomorrow i open the way down. earl is waiting. will you come', a:[
+    {label:'I\'ll come.', kind:1, key:'down', reply:'good. bring worms'},
+    {label:'I\'m staying up here with the shop.', kind:0, reply:'ok. then i will bring him up'}]},
+];
+function showGordonNote(next){
+  const n = GNOTES[S.night - 1];
+  if (!n || S.fed < 1){ next(); return; }
+  showOverlay(`
+    <div class="gnote" role="dialog" aria-label="A note from the fridge">
+      <p class="from">DAMP NOTE, FOUND IN THE WORM FRIDGE</p>
+      <p class="scrawl">${n.txt}</p>
+      <div class="acts" id="gActs" style="flex-direction:column"></div>
+    </div>`);
+  renderButtons('gActs', n.a.map(a => ({label:'Tape back: "' + a.label + '"', go:() => {
+    S.trust += a.kind; S.replies.push(a.label); if (a.key) S[a.key] = true;
+    if (S.replies.length >= GNOTES.length) unlock('pen_pals');
+    tone(700,.1,'sine',.04);
+    $('gActs').insertAdjacentHTML('beforebegin', `<p class="reply">${a.reply}</p>`);
+    renderButtons('gActs', [{label:'Go home and sleep', go:next}]);
+  }})));
+  $('gActs').querySelectorAll('button').forEach(b => b.classList.remove('primary'));
+}
+let S = null, lastStart = null, T = 0;
+let queue = [], cust = null, phase = 'start', view = 'shop', counter = [], pile = 0, paid = 0, due = 0;
+let nightSales = 0, nightTips = 0, served = 0, totalCust = 0;
+let fr = {timer:0, rattle:0, left:0, thumpAcc:0};
+let toastT = 0, shake = 0, drawerT = 0, steal = null, floats = [], cricketT = 3;
+const stock = k => S.slots.filter(s => s === k).length;
+const boxCount = () => STOCK.reduce((s, k) => s + S.box[k], 0);
+const quota = () => QUOTA[S.night - 1];
+const stage = () => Math.min(4, Math.floor(S.fed / 2));
+const hunger = () => stage() >= 2 ? 2 : 1;
+
+// ---------- sound ----------
+let AC = null, MASTER = null, HUMG = null, muted = false;
+function audio(){
+  try {
+    if (!AC){
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      MASTER = AC.createGain(); MASTER.gain.value = muted ? 0 : 1; MASTER.connect(AC.destination);
+      const hum = AC.createOscillator(), lp = AC.createBiquadFilter();
+      hum.type = 'sawtooth'; hum.frequency.value = 120; lp.type = 'lowpass'; lp.frequency.value = 280;
+      HUMG = AC.createGain(); HUMG.gain.value = .01; hum.connect(lp).connect(HUMG).connect(MASTER); hum.start();
+      const fh = AC.createOscillator(), fg = AC.createGain(); fh.frequency.value = 58; fg.gain.value = .018;
+      fh.connect(fg).connect(MASTER); fh.start();
+    }
+    AC.resume?.();
+    startMusic();
+  } catch(e) {}
+}
+function tone(f, d, type = 'sine', vol = .08, when = 0){
+  if (!AC) return;
+  try {
+    const osc = AC.createOscillator(), g = AC.createGain(), t = AC.currentTime + when;
+    osc.type = type; osc.frequency.value = f;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + d);
+    osc.connect(g).connect(MASTER); osc.start(t); osc.stop(t + d);
+  } catch(e) {}
+}
+const bell  = () => { tone(1320,.5,'sine',.05); tone(990,.8,'sine',.04,.13); };
+const thump = (big) => { tone(70,.25,'sine',big ? .4 : .28); tone(52,.3,'triangle',.18,.07); if (!RM) shake = Math.max(shake, big ? 9 : 5); };
+const ching = () => { tone(880,.07,'square',.025); tone(1760,.3,'sine',.05,.07); tone(2350,.4,'sine',.03,.14); };
+const blip  = () => tone(560 + Math.random() * 200,.06,'square',.025);
+const beep  = () => tone(1560,.09,'square',.03);
+const door  = () => { tone(180,.18,'triangle',.08); tone(120,.25,'sine',.06,.05); };
+const slurp = () => { tone(300,.25,'sawtooth',.03); tone(140,.3,'sine',.08,.1); };
+const ring  = () => { for (let i = 0; i < 2; i++){ tone(440,.35,'sine',.05,i * .45); tone(480,.35,'sine',.05,i * .45); } if (!RM) shake = Math.max(shake, 1.5); };
+const chirp = () => { const f = 4200 + Math.random() * 300; for (let i = 0; i < 3; i++) tone(f,.035,'sine',.008,i * .07); };
+// ---------- the radio: four stations, all generated live ----------
+let MUSICG = null, FX = null, musicNext = 0, musicStep = 0, NOISE = null;
+let track = 0;
+try { const saved = localStorage.getItem('baitshop-radio'); if (saved !== null) track = +saved; } catch(e) {}
+const midi = n => 440 * 2 ** ((n - 69) / 12);
+function note(n, when, dur, vol, type = 'sine', attack = .04){
+  const osc = AC.createOscillator(), g = AC.createGain();
+  osc.type = type; osc.frequency.value = midi(n); osc.detune.value = (Math.random() - .5) * 14;
+  g.gain.setValueAtTime(0, when); g.gain.linearRampToValueAtTime(vol, when + attack); g.gain.exponentialRampToValueAtTime(.0001, when + dur);
+  osc.connect(g).connect(MUSICG); osc.start(when); osc.stop(when + dur + .05);
+}
+function noise(at, dur, vol, freq){
+  if (!NOISE){
+    NOISE = AC.createBuffer(1, AC.sampleRate * .3, AC.sampleRate);
+    const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain();
+  s.buffer = NOISE; f.type = 'highpass'; f.frequency.value = freq;
+  g.gain.setValueAtTime(vol, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f).connect(g).connect(MUSICG); s.start(at); s.stop(at + dur + .02);
+}
+const hat = (at, v) => noise(at, .04, v, 7000);
+function kick(at){
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.frequency.setValueAtTime(120, at); o.frequency.exponentialRampToValueAtTime(40, at + .15);
+  g.gain.setValueAtTime(.13, at); g.gain.exponentialRampToValueAtTime(.0001, at + .25);
+  o.connect(g).connect(MUSICG); o.start(at); o.stop(at + .3);
+}
+
+// Deep Water: soft A-minor pads that drift to an E major chord that doesn't belong,
+// a music box with echoes, a low drone, and tape warble.
+const DW = {prog:[[57,64,67,71],[53,60,64,71],[50,57,62,69],[52,59,63,68]], mel:[76,79,81,83,84,88], odd:[80,75,87]};
+// Lobby Jazz: the original warm electric-piano loop.
+const LJ = {prog:[[62,66,69,73],[59,62,66,69],[64,67,71,74],[57,61,64,67]], mel:[74,76,78,81,83,86]};
+// Night Drive: Am, F, C, G with a pulsing bass and an arpeggio.
+const ND = [[57,60,64],[53,57,60],[48,52,55],[55,59,62]];
+// Bait & Switch: a polka in C that takes one wrong turn (the A-flat chord).
+const BS = [[48,52,55],[43,53,59],[48,52,55],[53,57,60],[48,52,55],[43,53,59],[44,48,51],[43,50,55]];
+
+const TRACKS = [
+  {name:'Deep Water', bpm:50, sub:1, wet:.5, warble:.0045, lp:1500, drone:1, tick(s, at, beat){
+    const ci = Math.floor(s / 4) % 4, ch = DW.prog[ci];
+    if (s % 4 === 0){
+      ch.forEach((n, i) => note(n, at + i * .06, beat * 4.8, .03, i % 2 ? 'triangle' : 'sine', 1.2));
+      note(ch[0] - 12, at, beat * 4.4, .05, 'triangle', .8);
+    }
+    if (Math.random() < .38){
+      const n = pick(ci === 3 && Math.random() < .6 ? DW.odd : DW.mel), t = at + (Math.random() < .5 ? 0 : beat / 2);
+      note(n, t, 2.6, .03, 'sine', .005);
+      if (Math.random() < .3) note(n + 12, t + beat * .75, 1.8, .012, 'triangle', .005);
+    }
+    if (s % 16 === 10 && Math.random() < .6) note(pick([88, 91, 87]), at, beat * 3, .018, 'sine', beat * 2.6);
+  }},
+  {name:'Lobby Jazz', bpm:72, sub:1, wet:.18, warble:.002, lp:1800, drone:0, tick(s, at, beat){
+    const ch = LJ.prog[Math.floor(s / 4) % 4], b = s % 4;
+    if (b === 0){ ch.forEach((n, i) => note(n, at + i * .025, beat * 3.8, .045, 'triangle')); note(ch[0] - 24, at, beat * 1.8, .09); }
+    if (b === 2) note(ch[2] - 24, at, beat * 1.8, .07);
+    if (Math.random() < .45) note(pick(LJ.mel), at + (Math.random() < .5 ? 0 : beat / 2), beat * 1.2, .03);
+  }},
+  {name:'Night Drive', bpm:108, sub:2, wet:.14, warble:.0012, lp:3200, drone:0, tick(s, at, beat){
+    const ch = ND[Math.floor(s / 8) % 4], e = s % 8;
+    note(ch[0] - 12 + (e % 2 ? 12 : 0), at, beat * .45, .055, 'triangle', .01);
+    if (e % 4 === 0) kick(at);
+    if (e % 4 === 2) noise(at, .14, .05, 1800);
+    hat(at, e % 2 ? .012 : .022);
+    if (e === 3 || e === 7) ch.forEach(n => note(n + 12, at, beat * .35, .012, 'square', .005));
+    note(ch[[0,1,2,1,0,2,1,2][e]] + 24, at, beat * .5, .02, 'sine', .005);
+  }},
+  {name:'Bait & Switch', bpm:132, sub:2, wet:.1, warble:.001, lp:2800, drone:0, tick(s, at, beat){
+    const bar = Math.floor(s / 4) % BS.length, ch = BS[bar], e = s % 4;
+    if (e === 0) note(ch[0] - 12, at, beat * .5, .08, 'triangle', .005);
+    if (e === 2) note(ch[2] - 12, at, beat * .5, .07, 'triangle', .005);
+    if (e % 2 === 1){ ch.forEach(n => note(n + 12, at, beat * .22, .014, 'square', .003)); hat(at, .018); }
+    // the whistled tune: chord tones on the beat, a passing note in between
+    if (e % 2 === 0) note(ch[(bar + e / 2) % 3] + 24, at, beat * .45, .028, 'sine', .01);
+    else if (Math.random() < .5) note(ch[(bar + 1) % 3] + 26, at, beat * .3, .02, 'sine', .01);
+  }},
+];
+
+// Earl's Mixtape (hidden): a creaky sea-shanty waltz in D minor, accordion-ish
+const MX = {
+  chords:[[50,53,57],[55,58,62],[50,53,57],[57,61,64],[50,53,57],[55,58,62],[50,53,57],[57,61,64]],
+  mel:[[81,81,81],[79,77,76],[74,77,81],[79,null,null],[81,82,84],[82,81,79],[77,76,74],[73,null,null]],
+};
+const MIXTAPE = {name:'Earl\'s Mixtape', bpm:100, sub:1, wet:.25, warble:.004, lp:2200, drone:0, tick(s, at, beat){
+  const bar = Math.floor(s / 3) % 8, b = s % 3, ch = MX.chords[bar], m = MX.mel[bar][b];
+  if (b === 0) note(ch[0] - 12, at, beat * .8, .08, 'triangle', .01);
+  else ch.forEach(n => note(n + 12, at, beat * .35, .01, 'sawtooth', .01));
+  if (m){ note(m, at, beat * (MX.mel[bar][b + 1] === null ? 2.6 : .9), .018, 'square', .02); note(m, at, beat * .9, .02, 'sine', .02); }
+}};
+function addMixtape(){
+  if (!TRACKS.includes(MIXTAPE)) TRACKS.push(MIXTAPE);
+  document.querySelectorAll('.radio select').forEach(sel => {
+    sel.innerHTML = `<option value="-1">Radio off</option>` + TRACKS.map((tr, i) => `<option value="${i}">&#9835; ${tr.name}</option>`).join('');
+    sel.value = String(track);
+  });
+}
+if (found.has('tape')) TRACKS.push(MIXTAPE);
+if (!(track >= -1 && track < TRACKS.length)) track = 0;
+
+function musicTick(){
+  if (!AC || !MUSICG || track < 0) return;
+  const tr = TRACKS[track], beat = 60 / tr.bpm, step = beat / tr.sub;
+  if (musicNext < AC.currentTime) musicNext = AC.currentTime + .05;
+  while (musicNext < AC.currentTime + .5){ tr.tick(musicStep, musicNext, beat); musicNext += step; musicStep++; }
+}
+function applyTrackFx(){
+  if (!FX || track < 0) return;
+  const tr = TRACKS[track];
+  FX.wet.gain.value = tr.wet; FX.lfoG.gain.value = tr.warble; FX.lp.frequency.value = tr.lp; FX.drone.gain.value = tr.drone;
+}
+function setTrack(i){
+  track = i; musicStep = 0;
+  if (AC) musicNext = AC.currentTime + .15;
+  applyTrackFx();
+  try { localStorage.setItem('baitshop-radio', String(i)); } catch(e) {}
+  document.querySelectorAll('.radio select').forEach(sel => sel.value = String(i));
+}
+function fillRadio(sel){
+  sel.innerHTML = `<option value="-1">Radio off</option>` + TRACKS.map((tr, i) => `<option value="${i}">&#9835; ${tr.name}</option>`).join('');
+  sel.value = String(track);
+  sel.addEventListener('change', () => { audio(); setTrack(+sel.value); });
+}
+function startMusic(){
+  if (MUSICG || !AC) return;
+  try {
+    MUSICG = AC.createGain(); MUSICG.gain.value = 0;
+    // tape warble: a short delay line whose length drifts slowly
+    const warble = AC.createDelay(.1); warble.delayTime.value = .03;
+    const lfo = AC.createOscillator(), lfoG = AC.createGain();
+    lfo.frequency.value = .23; lfo.connect(lfoG).connect(warble.delayTime); lfo.start();
+    const lp = AC.createBiquadFilter(); lp.type = 'lowpass';
+    MUSICG.connect(warble).connect(lp).connect(MASTER);
+    // echo tail
+    const echo = AC.createDelay(2), fb = AC.createGain(), wet = AC.createGain();
+    echo.delayTime.value = .72; fb.gain.value = .42;
+    warble.connect(echo); echo.connect(fb).connect(echo); echo.connect(wet).connect(lp);
+    // low drone (Deep Water only), two tones slightly apart so it slowly beats
+    const drone = AC.createGain(); drone.connect(MUSICG);
+    [45, 45.25].forEach(n => {
+      const d = AC.createOscillator(), dg = AC.createGain();
+      d.frequency.value = midi(n); dg.gain.value = .022; d.connect(dg).connect(drone); d.start();
+    });
+    FX = {wet, lfoG, lp, drone};
+    applyTrackFx();
+    setInterval(musicTick, 150); musicTick();
+  } catch(e) {}
+}
+fillRadio($('radio'));
+$('mute').addEventListener('click', () => {
+  muted = !muted; if (MASTER) MASTER.gain.value = muted ? 0 : 1;
+  $('mute').textContent = muted ? 'SOUND OFF' : 'SOUND ON'; $('mute').setAttribute('aria-pressed', muted);
+});
+
+// ---------- story ----------
+const NOTES = [
+  {h:'Taped to the register', body:['Kid,','The shop is yours until I get back. Open 11 to 5. Mr. Pell from the bank wants a number every night. Make the number.','Stock goes in the fridge. Worms die if you leave them in the box.','If the fridge knocks, open it. You\'ll know what to do.','P.S. If the register ever asks you for a code, it\'s the year I opened this place.'], sig:'Earl'},
+  {h:'Earl\'s notebook, June 3', body:['There is something living behind the worms. It ate a whole flat of nightcrawlers, then it fixed the compressor.','I did not ask it to fix the compressor.','I\'m calling him Gordon.'], sig:''},
+  {h:'Earl\'s notebook, June 9', body:['Gordon knocks when he\'s hungry. The more you feed him, the more he wants. If you don\'t feed him, he helps himself.','He likes the glowing worms Vic sells best. Don\'t ask Vic where they come from.'], sig:''},
+  {h:'Earl\'s notebook, June 14', body:['Pell was here. Says the numbers are bad.','Gordon knocked so hard the pickled eggs fell off the shelf. Gordon does not like Pell.','Barb says she saw something in the lake with more than two eyes. I didn\'t tell her.'], sig:''},
+  {h:'Earl\'s notebook, June 20', body:['Gordon showed me what\'s behind the back wall. It goes down a long way. The fishing down there is unbelievable.','Going for a look. If I\'m not back, feed him. He\'ll look after you.'], sig:'E.'},
+  {h:'Pinned to a piece of driftwood', body:['Kid, welcome to the bottom of the lake.','Same shop, different customers. Down here they buy whatever falls in from up top: keys, socks, phone chargers. They pay in sand dollars.','The lake takes a toll, $40 a night. Don\'t worry if you miss it. The lake is patient.','Gordon will help. I\'ll come by at closing.'], sig:'Earl'},
+];
+const GIFTS = [
+  {id:'five',  text:'a wet $5 bill', fn:() => { S.cash += 5; }},
+  {id:'lure',  text:'a lure with "EARL" carved into it'},
+  {id:'one',   text:'a damp $1 bill', fn:() => { S.cash += 1; }},
+  {id:'watch', text:'Earl\'s wristwatch. It\'s still ticking.', night:3},
+  {id:'photo', text:'a photo of Earl and a very large worm, both smiling', night:4},
+];
+
+// ---------- customers ----------
+const COLS = ['#e2a86b','#9fc27a','#c98fd0','#e6d36a','#7fb0d8','#d97a6c','#a3d6c4','#d8b48f'];
+const HATS = ['#5d7a3a','#b5523b','#d8c27a','#3f5f7a'];
+const NAMES = ['Gary','Theresa','Big Lou','Pam','Rodney','Walt','Deb','Hector','Maureen','Skip','Carla','Two-Boats Tim','June','Otis'];
+const TPL = ['{O}.','Gimme {o}.','{O}, and make it quick. They\'re biting.','Uh. {o}? Is that a lot?','Evening. {O}, please.','{O}. Don\'t ask why.','{O}. My wife thinks I\'m at the gym.'];
+const randLook = () => ({kind:'blob', color:pick(COLS), w:(44 + Math.random()*22)|0, h:(150 + Math.random()*60)|0,
+  hat:Math.random() < .35, hatColor:pick(HATS), glasses:Math.random() < .25});
+function payWith(t){
+  if (Math.random() < .2) return t;
+  const opts = [5,10,20].filter(b => b >= t);
+  return opts.length ? (Math.random() < .7 ? opts[0] : pick(opts)) : Math.ceil(t / 10) * 10;
+}
+function randomCustomer(names){
+  const ord = o(), first = pick(['worm','worm','worm','cricket','minnow']);
+  ord[first] = 1 + Math.floor(Math.random() * 3);
+  if (Math.random() < .4) ord[pick(KEYS.filter(k => k !== first))] = Math.random() < .3 ? 2 : 1;
+  if (S.up.espresso && !ord.coffee && Math.random() < .35) ord.coffee = 1;
+  const t = pick(TPL);
+  return {name:names.pop() || pick(NAMES), look:randLook(), order:ord, random:true,
+    line:t.replace('{O}', cap(orderText(ord))).replace('{o}', orderText(ord)), rate:1/(42 + Math.random()*12)};
+}
+const talk = (line, after = 'Okay.') => ({talk:true, line, choices:[{label:'Okay', go:() => typeof after === 'function' ? after() : after}]});
+
+function dennis(n){
+  const base = {name:'Dennis', look:{kind:'blob', color:'#c8b89a', w:42, h:140, glasses:true, tie:n >= 3}, dennis:true};
+  if (n === 5) return {...base, ...talk('No worm tonight. I let the last one go. I just came to say goodnight. Here, for your trouble.' + (S.wormName ? ` Oh, and hello, ${S.wormName}.` : ''),
+    () => { S.cash += 5; nightTips += 5; floatAt(532, 230, '+$5'); unlock('dennis'); return 'Say goodnight to Gordon for me.'; })};
+  const lines = ['One worm, please.','One worm. Same as last time.','Just the one worm. He is wearing a tie tonight.','One worm. Big night for me.'];
+  const p = S.prices.worm;
+  // Dennis will pay whatever you charge. He will also say something about it.
+  const note = p > 2 ? ` ...Oh. It's $${p} now? That's okay. That's fine.` : p < 2 ? ' Oh! It\'s cheaper! Earl never did that.' : '';
+  return {...base, order:o({worm:1}), line:lines[n-1] + note, pay:20, rate:1/60,
+    thanks:p > 2 ? 'Thank you. He\'ll still be happy. Probably.' : 'Thank you. He\'ll be very happy.'};
+}
+function milo(n){
+  const base = {name:'Milo, age 9', look:{kind:'blob', color:'#f0c27a', w:34, h:112, hat:true, hatColor:'#b5523b'}};
+  const caps = (line) => ({...base, talk:true, line, choices:[
+    {label:'Take the bottle caps', can:() => stock('worm') > 0, go:() => { removeStock('worm', 1); S.milo++; return 'YES. Thank you! I\'m gonna catch a whale.'; }},
+    {label:'Real money only', go:() => 'Oh. Okay.', mood:'sad'},
+  ]});
+  if (n === 1) return caps('Can I have one cup of worms? I have eleven bottle caps.');
+  if (n === 2) return caps('Bottle caps again. Fourteen this time. One of them is rare.');
+  if (n === 3) return {...base, order:o({worm:1}), pay:2, line:'I found two REAL dollars. One cup of worms, please.', rate:1/60, thanks:'I\'m rich.'};
+  if (n === 4) return {...base, ...talk(S.milo ? 'I caught my first fish! It was the size of my hand. Thank you for the worms.' : 'I got worms from the gas station. They were bad worms. I didn\'t catch anything.', 'Bye!')};
+  return {...base, ...talk(S.milo >= 2 ? 'My grandpa says I have to pay you back properly. He gave me a real twenty. Also I drew you a picture.' : 'Me and my grandpa are going to the lake tomorrow. Bye!',
+    () => { if (S.milo >= 2){ S.cash += 20; nightTips += 20; floatAt(532, 230, '+$20'); toast('In the drawing, the fridge has eyes.'); unlock('milo'); } return 'Bye!'; })};
+}
+function barb(n){
+  const base = {name:'Big Fish Barb', look:{kind:'blob', color:'#9fc27a', w:60, h:205, hat:true, hatColor:'#b5523b'}};
+  if (n === 1) return {...base, order:o({minnow:1}), line:'One bag of minnows. There\'s something in that lake. Something big.', rate:1/48};
+  if (n === 2) return {...base, order:o({minnow:2}), line:'Two bags. It took my whole line yesterday. My whole line.', rate:1/48};
+  if (n === 3) return {...base, order:o({minnow:3, worm:1}), line:'Three bags of minnows and a cup of worms. I saw it. It has more than two eyes.', rate:1/48};
+  if (n === 4) return {...base, talk:true, line:'Minnows aren\'t cutting it. You got anything... special? Anything that glows?', choices:[
+    {label:'Sell her a glowing worm ($12)', can:() => stock('glow') > 0, go:() => { removeStock('glow', 1); S.barbGlow = true; sellDirect(12); return 'Oh, that\'s the stuff. Wish me luck.'; }},
+    {label:'Two bags of minnows ($8)', can:() => stock('minnow') >= 2, go:() => { removeStock('minnow', 2); sellDirect(8); return 'Fine. It won\'t be enough.'; }},
+    {label:'Nothing tonight', go:() => 'Hm.', mood:'sad'},
+  ]};
+  return {...base, ...talk(S.barbGlow ? 'I caught it. Then it asked me to put it back, so I did. It said to thank you for the worms. It knew your name.' : 'Still haven\'t caught it. It keeps looking up at your shop, you know.',
+    () => { if (S.barbGlow) unlock('barb'); return 'Tight lines.'; })};
+}
+function trucker(n){
+  const want = n === 2 ? 6 : 8, pay = n === 2 ? 16 : 22;
+  return {name:'Guy in a truck', look:{kind:'blob', color:'#d97a6c', w:66, h:190, hat:true, hatColor:'#3f5f7a'}, talk:true,
+    line:`Tournament at dawn. I'll give you $${pay} for ${NUM[want]} cups of worms, right now. Cash.`, choices:[
+      {label:`Deal ($${pay})`, can:() => stock('worm') >= want, go:() => { removeStock('worm', want); S.truckDeals++; sellDirect(pay); unlock('truck'); return 'Pleasure.'; }},
+      {label:'No deal', go:() => 'Your loss.', mood:'sad'},
+    ]};
+}
+function special(n){
+  return [
+    {name:'Man in waders', look:{kind:'blob',color:'#7fb0d8',w:52,h:200,hat:true,hatColor:'#5d7a3a'}, order:o({cricket:2}),
+      line:'Two bags of crickets. The lake\'s been weird since Earl left.', rate:1/46},
+    {name:'Woman with a cat carrier', look:{kind:'blob',color:'#d9a0c8',w:58,h:170,glasses:true}, order:o({minnow:1}),
+      line:'One bag of minnows. They\'re for him. (The carrier growls at the fridge.)', pay:5, rate:1/42},
+    {name:'Customer in a long coat', look:{kind:'fish'}, order:o({minnow:2}),
+      line:'Two bags of minnows. They\'re for a friend. Stop looking at me like that.', pay:10, rate:1/38, thanks:'...Thank you. Tell no one.'},
+    {name:'Tired nurse', look:{kind:'blob',color:'#a3d6c4',w:48,h:180}, order:o({coffee:2}),
+      line:'Do you sell anything that isn\'t alive? ...Two coffees, then.', pay:5, rate:1/46},
+    {name:'Man in a damp hat', look:{kind:'blob',color:'#b9a58c',w:56,h:185,hat:true,hatColor:'#3f5f7a'}, order:o({worm:2}),
+      line:'Two cups of worms. Is Gordon eating okay? Don\'t tell him I was here.', pay:5, rate:1/50, thanks:'You\'re doing fine, kid.'},
+  ][n-1];
+}
+function pell(){
+  return {name:'Mr. Pell, First Lakeside Bank', look:{kind:'landlord',color:'#8d8a9e',w:62,h:185,tie:true}, pell:true,
+    ...talk(`You missed the number last night. That's strike ${S.strikes} of 2. Miss it again and the bank takes the shop.`, 'Good night.')};
+}
+// Gordon helps once he's big enough and trusts you
+const helper = () => S.deep || (stage() >= 2 && (S.trust >= 1 || S.fed >= 5));
+
+// ---------- the Deep Shift (night 6) customers ----------
+const FISH_COLS = ['#7fb3a8','#e2a86b','#c98fd0','#8cc6e6','#e6d36a','#d97a6c'];
+const FISH_NAMES = ['A carp','A very old pike','A catfish in a hat','Two perch (one customer)','A nervous trout','A crayfish','A sunfish','An eel'];
+const DEEP_TPL = ['{O}. For my collection.','I heard humans use {o}. What for?','{O}, please. Don\'t tell the surface.','{O}. My cousin found one of these once. Changed his life.','{O}. Is that a lot? It feels like a lot.'];
+function deepCustomer(names){
+  const c = randomCustomer([]);
+  const name = names.pop() || pick(FISH_NAMES);
+  const t = pick(DEEP_TPL);
+  c.name = name;
+  c.look = name === 'An eel' ? {kind:'eel', color:'#6f8f5a'} : {kind:'fish', color:pick(FISH_COLS), coat:false, hat:name.includes('hat')};
+  c.line = t.replace('{O}', cap(orderText(c.order))).replace('{o}', orderText(c.order));
+  c.rate = 1 / 52; c.random = false;  // fish don't haggle
+  return c;
+}
+function dennisWorm(){
+  return {name:'A worm in a tiny tie', look:{kind:'worm', color:PINK}, ...talk(
+    'Dennis let me go, so I swam all the way down here. Tell him thank you. He was very nice about the tie.' + (S.wormName ? ` Also, is ${S.wormName} doing okay up there?` : ''),
+    () => { unlock('dworm'); return 'Tell him I\'m doing great. The water\'s lovely.'; })};
+}
+function coatFish(){
+  return {name:'Customer in a long coat', look:{kind:'fish'}, order:o({cricket:2}), pay:10, rate:1/50,
+    line:'You! Up there I buy minnows from you. Down here I buy socks. Two socks. Don\'t make it weird.', thanks:'...We\'re even now.'};
+}
+function gordonsMom(){
+  return {name:'Gordon\'s mom', look:{kind:'mom', color:'#e98b86'}, talk:true,
+    line:`So YOU'RE the one who's been feeding my boy. ${stage() >= 3 ? 'Look how big he\'s gotten!' : 'He\'s still so small.'}`, choices:[
+      {label:'He\'s a good kid', go:() => { unlock('mom'); S.cash += 20; nightTips += 20; floatAt(420, 200, '+$20'); return 'He is. Here, sand dollars. Buy yourself something nice.'; }},
+      {label:'He ate a lot of my stock', go:() => { unlock('mom'); return 'That\'s my boy.'; }},
+    ]};
+}
+function earlDeep(){
+  const stay = {label:'Stay down here with Earl', go:() => { S.deepChoice = 'stay'; return 'Ha! I\'ll get you an apron. The fishing down here is unbelievable.'; }};
+  const home = {label:'Go back up and run the shop', go:() => { S.deepChoice = 'home'; return 'Somebody has to keep the lights on. Proud of you, kid.'; }};
+  return {name:'Uncle Earl', look:{kind:'blob', color:'#d8b48f', w:58, h:190, hat:true, hatColor:'#3f5f7a', beard:true}, talk:true,
+    line:`Kid! You made it all the way down. ${S.earlCall === 'home' ? 'You kept the lights on. I noticed.' : 'How\'s the shop up top?'} So. You staying, or going back up?`,
+    choices:[stay, home]};
+}
+function buildDeep(){
+  const names = [...FISH_NAMES].sort(() => Math.random() - .5);
+  const q = [];
+  for (let i = 0; i < 6; i++) q.push(deepCustomer(names));
+  const ins = (c, f) => q.splice(Math.round(q.length * f), 0, c);
+  ins(dennisWorm(), .2); ins(coatFish(), .5); ins(gordonsMom(), .75);
+  q.push(earlDeep());
+  return q;
+}
+function rude(n){
+  const want = n >= 5 ? 5 : 4;
+  return {name:'Guy in a tracksuit', look:{kind:'blob', color:'#c7c2e0', w:64, h:196, shades:true}, talk:true,
+    line:`${cap(NUM[want])} cups of worms. I'm paying three bucks. Total. Take it or leave it, pal.`, choices:[
+      {label:'Take the $3', can:() => stock('worm') >= want, go:() => { removeStock('worm', want); sellDirect(3); return 'Pleasure. Sucker.'; }},
+      {label:'No deal', go:() => 'Your loss, pal. This place stinks anyway.', mood:'sad'},
+      {label:'Let Gordon handle it', show:helper, go:() => { gordonScare(); return 'WHAT IS THAT. WHAT IS THAT THING.'; }, mood:'angry'},
+    ]};
+}
+function vic(){
+  const done = {label:'Thanks, Vic', go:() => 'Vic out.'};
+  return {name:'Vic, in person', look:{kind:'blob', color:'#b8e0a0', w:40, h:210, shades:true, glowy:true}, talk:true,
+    line:'Vic. In person. Don\'t make it weird. You been feeding him the glowing ones?', choices:[
+      {label:'Where do the glowing worms come from?', go:() => ({
+        line:'Drain behind the shop. Goes down. Way down, past where the lake stops. Everything down there glows. I scoop \'em out with a net.',
+        choices:[
+          {label:'Is that where Earl went?', go:() => { unlock('vic'); return {
+            line:'Earl went further. Earl went all the way down. Gordon showed him the door. Gordon\'s family down there. Everybody down there is related. ...You didn\'t hear it from Vic.',
+            choices:[done]}; }},
+          {label:'That\'s disgusting', go:() => 'Gordon doesn\'t think so. Vic out.'},
+        ]})},
+      {label:'Can I get a deal?', go:() => { S.vicFree = true; return 'Vic likes you. Next Vic order, three extra. On the house.'; }},
+      {label:'Get out of my shop', go:() => { S.vicMad = true; return 'Rude. Vic remembers. Vic\'s worms won\'t glow as much for you.'; }, mood:'sad'},
+    ]};
+}
+function lakeLady(){
+  const give = {label:'Give her a worm', can:() => stock('worm') + stock('glow') > 0, go:() => {
+    removeStock(stock('glow') ? 'glow' : 'worm', 1); sellDirect(30); unlock('lake');
+    toast('She pays with a pearl. The register says it\'s worth $30.');
+    return 'Earl says hello. He says the fishing is wonderful, and that you should raise your prices.';
+  }};
+  return {name:'A woman dripping lake water', look:{kind:'lake', color:'#a9d8e8', w:50, h:215}, talk:true,
+    line:'One worm, please. For the long swim home. I pay in pearls.', choices:[
+      give,
+      {label:'Who are you?', go:() => ({line:'I\'m the lake. Well, a small part of it. Earl typed that code once, too.', choices:[give, {label:'Goodnight', go:() => 'Goodnight.'}]})},
+    ]};
+}
+function buildNight(n){
+  if (S.deep) return buildDeep();
+  const names = [...NAMES].sort(() => Math.random() - .5);
+  const q = [];
+  for (let i = 0; i < [4,4,5,5,5][n-1]; i++) q.push(randomCustomer(names));
+  const ins = (c, f) => q.splice(Math.round(q.length * f), 0, c);
+  ins(dennis(n), .15); ins(milo(n), .35); ins(special(n), .55); ins(barb(n), .75);
+  if (n === 3) ins(vic(), .45);
+  if (n === 3 || n === 5) ins(rude(n), .65);
+  if (n === 2 || n === 4) ins(trucker(n), .92);
+  if (S.missedLast) q.unshift(pell());
+  return q;
+}
+
+// ---------- flow ----------
+function showNote(){
+  setPhase('note');
+  const n = NOTES[S.night - 1];
+  showOverlay(`
+    <div class="notebook" role="dialog" aria-label="${n.h}">
+      <h2>${n.h}</h2>
+      ${n.body.map(p => `<p>${p}</p>`).join('')}
+      ${n.sig ? `<p class="sig">- ${n.sig}</p>` : ''}
+      <button id="noteGo">Start night ${S.night}</button>
+    </div>`);
+  $('noteGo').addEventListener('click', () => { audio(); hideOverlay(); startNight(); });
+  $('noteGo').focus();
+}
+function startNight(){
+  lastStart = structuredClone(S);
+  queue = buildNight(S.night); totalCust = queue.length; served = 0; nightSales = 0; nightTips = 0; cust = null; counter = [];
+  fr = {timer:10 + Math.random()*10, rattle:0, left:S.deep ? 0 : [1,2,2,3,3][S.night-1], thumpAcc:0};
+  view = 'shop'; floats = []; steal = null; esc = null; waterWarned = S.water < 40;
+  fetchLeft = S.deep ? 4 : stage(); fetchQ = []; reach = null; signHits = 0;
+  ph = {at:18 + Math.random() * 16, ring:0, done:!!S.deep, acc:0}; onCall = false; $('phoneBtn').hidden = true;
+  setPhase('stock');
+  say('', `Quota tonight: $${quota()} in sales.`);
+  toast(S.powerOff ? 'You didn\'t pay the electric. It\'s very dark in here.' : boxCount() ? 'Click the fridge to put the delivery away.' : 'No delivery tonight.', 4);
+}
+function openShop(){
+  if (phase !== 'stock') return;
+  view = 'shop'; setPhase('idle'); bell();
+  if (boxCount()) toast('You opened with stock still in the box.');
+  setTimeout(nextCustomer, 1400);
+}
+function nextCustomer(){
+  if (!queue.length) return endNight();
+  cust = queue.shift();
+  Object.assign(cust, {ax:-440, anim:'in', patience:1, mood:null, jumpT:-9, rate:cust.rate || 1/45});
+  counter = []; pile = 0; bell();
+  say(cust.name, cust.line);
+  if (cust.talk){ view = 'shop'; renderChoices(); }
+  if (cust.pell && (stage() >= 1 || S.ignored >= 1)) setTimeout(() => toast('The fridge starts knocking. Hard.'), 900);
+  if (cust.dennis && stage() >= 1) setTimeout(() => toast('The fridge makes a happy little sound.'), 900);
+  setPhase(cust.talk ? 'talk' : 'order');
+}
+function renderChoices(){
+  const box = $('talkActs'); box.innerHTML = '';
+  cust.choices.filter(c => !c.show || c.show()).forEach((c, i) => {
+    const b = document.createElement('button');
+    b.textContent = c.label; b.className = i === 0 ? 'primary' : c.show ? 'warn' : '';
+    if (c.can && !c.can()){ b.disabled = true; b.title = 'You don\'t have the stock for this.'; }
+    b.addEventListener('click', () => choose(c));
+    box.appendChild(b);
+  });
+  box.querySelector('button:not(:disabled)')?.focus({preventScroll:true});
+}
+function choose(c){
+  if (phase !== 'talk') return;
+  if (c.can && !c.can()){ toast('You don\'t have enough stock for that anymore.'); renderChoices(); return; }
+  const res = c.go();
+  // a choice can lead to more conversation instead of ending it
+  if (res && typeof res === 'object'){ say(cust.name, res.line); cust.choices = res.choices; renderChoices(); return; }
+  leave(c.mood || 'happy', res, true);
+}
+function removeStock(k, n){
+  for (let i = 0; i < n; i++){ const j = S.slots.lastIndexOf(k); if (j >= 0) S.slots[j] = null; }
+}
+function sellDirect(amount){
+  if (!amount) return;
+  S.cash += amount; nightSales += amount; ching(); drawerT = .9; floatAt(532, 226, '+$' + amount);
+  checkQuota(amount); updAll();
+}
+function checkQuota(amount){
+  if (nightSales >= quota() && nightSales - amount < quota()) setTimeout(() => toast('Quota made. Pell can\'t complain tonight.'), 400);
+}
+function putBack(){
+  counter.forEach(c => {
+    if (c.k === 'coffee') return;
+    const i = S.slots.indexOf(null);
+    if (i >= 0) S.slots[i] = c.k; else S.box[c.k]++;
+  });
+  counter = [];
+}
+function leave(mood, line, sold){
+  if (!sold) putBack();
+  counter = [];
+  view = 'shop'; setPhase('idle'); cust.mood = mood; served++;
+  if (onCall) toast(`${cust.name}: "${line}"`); else say(cust.name, line);
+  if (mood === 'happy') cust.jumpT = T;
+  updAll();
+  const c = cust;
+  setTimeout(() => { c.anim = 'out'; setTimeout(() => { if (cust === c) cust = null; setTimeout(nextCustomer, 500); }, 700); }, 1300);
+}
+function openFridge(){
+  if (!['stock','order','idle'].includes(phase)) return;
+  if (view !== 'fridge'){ view = 'fridge'; door(); updAll(); }
+}
+function closeFridge(){ if (view === 'fridge'){ view = 'shop'; door(); updAll(); } }
+function takeSlot(i){
+  const k = S.slots[i]; if (!k) return;
+  if (phase !== 'order'){ toast('Wait until someone asks for it.'); return; }
+  if (counter.length >= 10){ toast('The counter is full.'); return; }
+  S.slots[i] = null; counter.push({k, scanned:false, born:T, scanT:-9}); blip(); updAll();
+  const r = slotRect(i); floatAt(r.x + 36, r.y + 10, ITEMS[k].name.toLowerCase(), '#ffffff', 'fridge');
+}
+function takeType(k){ const i = S.slots.lastIndexOf(k); if (i < 0) toast(`None left in the fridge.`); else takeSlot(i); }
+function stockFromBox(k){
+  if (!S.box[k]) return;
+  const i = S.slots.indexOf(null);
+  if (i < 0){ toast('The fridge is full.'); return; }
+  S.box[k]--; S.slots[i] = k; blip(); updAll();
+  if (!boxCount() && phase === 'stock') toast('All put away. Flip the sign when you\'re ready.');
+}
+function pour(){
+  if (phase !== 'order') return;
+  if (counter.length >= 10){ toast('The counter is full.'); return; }
+  counter.push({k:'coffee', scanned:false, born:T, scanT:-9}); tone(300,.3,'sawtooth',.015); updAll();
+}
+function scan(i){
+  if (phase !== 'order') return;
+  const c = counter[i]; if (!c || c.scanned) return;
+  if (S.up.scanner){
+    // the scanner gun gets the whole counter in one sweep
+    counter.forEach((d, j) => { if (!d.scanned){ d.scanned = true; d.scanT = T + j * .05; floatAt(200 + j * 27, 246, '+$' + price(d.k)); } });
+    tone(1400,.05,'square',.03); tone(1900,.12,'square',.03,.06);
+  } else { c.scanned = true; c.scanT = T; beep(); floatAt(200 + i * 27, 246, '+$' + price(c.k)); }
+  updAll();
+}
+function scanNext(){ const i = counter.findIndex(c => !c.scanned); if (i < 0) toast(counter.length ? 'Everything is scanned.' : 'Nothing on the counter.'); else scan(i); }
+const scannedTotal = () => counter.filter(c => c.scanned).reduce((s, c) => s + price(c.k), 0);
+function totalUp(){
+  if (phase !== 'order') return;
+  if (!counter.length){ cust.patience -= .1; say(cust.name, 'You haven\'t given me anything.'); return; }
+  if (counter.some(c => !c.scanned)){ toast('Scan everything on the counter first.'); return; }
+  if (counter.some(c => c.k === 'glow')){
+    cust.patience -= .15; say(cust.name, 'This one is glowing. I\'m not paying for a glowing cup of worms.'); return;
+  }
+  const got = o(); counter.forEach(c => got[c.k]++);
+  if (!KEYS.every(k => got[k] === cust.order[k])){
+    cust.patience -= .2;
+    say(cust.name, `That's not what I asked for. I said ${orderText(cust.order)}.`);
+    return;
+  }
+  cust.tot = scannedTotal();
+  // random customers may walk out if you've raised prices; cheap prices make them happy
+  if (cust.random){
+    const base = KEYS.reduce((s, k) => s + cust.order[k] * (k === 'coffee' ? price('coffee') : ITEMS[k].price), 0);
+    const markup = (cust.tot - base) / base;
+    if (markup > 0 && Math.random() < Math.min(.85, markup * 1.2)){
+      leave('angry', pick([`$${cust.tot}? For worms? Forget it.`, `$${cust.tot}?! Earl never charged that.`, 'Nope. Too rich for me.']));
+      return;
+    }
+    if (markup < 0) cust.cheap = true;
+  }
+  paid = cust.pay && cust.pay >= cust.tot ? cust.pay : payWith(cust.tot); due = paid - cust.tot; pile = 0; blip();
+  if (due === 0){ say(cust.name, 'Exact change. Here.'); return complete(0); }
+  say(cust.name, `Here's $${paid}.`);
+  $('cPaid').textContent = paid; $('cTot').textContent = cust.tot; $('cPile').textContent = '$0';
+  view = 'shop'; setPhase('change');
+}
+function give(){
+  if (phase !== 'change') return;
+  if (pile === due) return complete(0);
+  if (pile > due) return complete(pile - due);
+  cust.patience -= .15; pile = 0; $('cPile').textContent = '$0';
+  say(cust.name, 'That\'s not enough. Count it again.');
+}
+function complete(over){
+  const net = cust.tot - over; S.cash += net; nightSales += cust.tot; ching(); drawerT = .9;
+  floatAt(532, 226, '+$' + cust.tot);
+  let line;
+  if (over > 0) line = pick([`Uh, that's $${over} too much. Okay, bye!`, 'Pleasure doing business. (They counted it. They\'re keeping the extra.)']);
+  else if (cust.cheap && cust.patience > .3){ S.cash += 2; nightTips += 2; line = pick(['Cheap AND good? Here\'s two bucks for you.','Best prices on the lake. Keep two dollars.']); }
+  else if (cust.patience > .6 && !cust.thanks){ S.cash += 1; nightTips += 1; line = pick(['Fast. Here, a dollar for you.','Keep a dollar. Buy yourself a worm.']); }
+  else line = cust.thanks || pick(['Thanks.','Yep.','Tight lines.','Okay.','Mm.']);
+  checkQuota(cust.tot);
+  leave('happy', line, true);
+}
+function sendAway(){
+  if (phase !== 'order') return;
+  leave('sad', pick(['Fine.','Guess I\'ll try the gas station.','Wow. Okay.']));
+}
+
+// ---------- stock that goes bad ----------
+let waterWarned = false, minnowDieT = 0, esc = null;
+function changeWater(){
+  if (S.up.pump) return;
+  S.water = 100; waterWarned = false;
+  tone(220,.4,'sawtooth',.02); tone(160,.5,'sine',.05,.1); tone(330,.3,'sine',.03,.3);
+  floatAt(300, 300, 'fresh water', '#8cc6e6', 'fridge');
+  toast('Fresh water for the minnows.');
+  updAll();
+}
+function tickWater(dt){
+  if (S.up.pump || S.deep){ S.water = 100; return; }
+  const before = S.water;
+  S.water = Math.max(0, S.water - dt * .9);
+  if (before >= 40 && S.water < 40 && !waterWarned){ waterWarned = true; toast('The minnow water is getting cloudy.'); }
+  if (Math.floor(before) !== Math.floor(S.water) && view === 'fridge') updPanels();
+  if (S.water < 20){
+    minnowDieT -= dt;
+    if (minnowDieT <= 0){
+      minnowDieT = 9;
+      const i = S.slots.lastIndexOf('minnow');
+      if (i >= 0){ S.slots[i] = null; toast('A bag of minnows went belly-up. Change the water!'); tone(200,.4,'sine',.05); updAll(); }
+    }
+  } else minnowDieT = 4;
+}
+function startEscape(i){
+  const c = counter.splice(i, 1)[0], x = 200 + i * 27, bugs = [];
+  for (let n = 0; n < 3; n++) bugs.push({x, y:280, fx:x, fy:280, tx:x, ty:280, p:1, dur:.4});
+  esc = {t:10, bugs};
+  toast('A cricket bag popped open! Click the crickets to catch them.', 3.5);
+  chirp(); chirp();
+  updAll();
+}
+function tickEscape(dt){
+  if (!esc){
+    if (S.up.lids || S.deep || phase !== 'order') return;
+    const i = counter.findIndex(c => c.k === 'cricket' && T - c.born > 7);
+    if (i >= 0 && Math.random() < dt * .12) startEscape(i);
+    return;
+  }
+  esc.t -= dt;
+  esc.bugs.forEach(b => {
+    b.p += dt / b.dur;
+    if (b.p >= 1.6){
+      b.fx = b.tx; b.fy = b.ty;
+      b.tx = Math.max(190, Math.min(580, b.fx + (Math.random() - .5) * 180));
+      b.ty = Math.max(215, Math.min(300, b.fy + (Math.random() - .5) * 80));
+      b.p = 0; b.dur = .3 + Math.random() * .3;
+    }
+    const p = Math.min(1, b.p);
+    b.x = b.fx + (b.tx - b.fx) * p; b.y = b.fy + (b.ty - b.fy) * p - Math.sin(p * Math.PI) * 28;
+  });
+  if (esc.t <= 0){ esc = null; toast('The crickets got away. That bag is gone.'); }
+}
+function catchBug(i){
+  esc.bugs.splice(i, 1); chirp(); tone(900,.06,'square',.02);
+  if (esc.bugs.length) return;
+  esc = null;
+  if (phase === 'order' && cust){ counter.push({k:'cricket', scanned:false, born:T + 30, scanT:-9}); toast('Got them all. Back in the bag.'); }
+  else { const j = S.slots.indexOf(null); if (j >= 0) S.slots[j] = 'cricket'; else S.box.cricket++; toast('Got them all. The bag goes back in the fridge.'); }
+  updAll();
+}
+
+// ---------- hidden extras ----------
+// 1. Earl's mixtape: knock on the NO REFUNDS sign three times and a cassette falls out
+let signHits = 0;
+function knockSign(){
+  if (S.tape) return;
+  signHits++; tone(180 + signHits * 40,.08,'triangle',.06); if (!RM) shake = Math.max(shake, 2);
+  if (signHits >= 3){ S.tape = 'out'; toast('Something taped behind the sign falls out. A cassette labeled "EARL\'S FAVORITES".', 4); }
+}
+function playTape(){
+  if (S.tape !== 'out') return;
+  S.tape = 'played'; audio();
+  if (!found.has('tape')){ unlock('tape'); addMixtape(); }
+  setTrack(TRACKS.indexOf(MIXTAPE));
+  toast('Earl\'s voice, before the music starts: "If you found this, you\'ve been snooping. Good. That\'s how you find the good fishing spots."', 6);
+}
+// 2. naming a worm: now and then one peeks out of its cup in the fridge
+let pk = {i:-1, t:0, next:5};
+function tickPeek(dt){
+  if (S.wormName || view !== 'fridge') return;
+  if (pk.i >= 0){ pk.t -= dt; if (pk.t <= 0 || S.slots[pk.i] !== 'worm'){ pk.i = -1; pk.next = 6 + Math.random() * 8; } return; }
+  pk.next -= dt;
+  if (pk.next <= 0){
+    const worms = S.slots.map((k, i) => k === 'worm' ? i : -1).filter(i => i >= 0);
+    if (worms.length){ pk.i = pick(worms); pk.t = 3.5; tone(1200,.08,'sine',.03); tone(1500,.1,'sine',.03,.08); }
+    else pk.next = 5;
+  }
+}
+function nameWorm(){
+  const slot = pk.i; if (slot < 0) return;
+  pk.i = -1;
+  showOverlay(`
+    <form class="gnote" id="nameForm" role="dialog" aria-label="Name the worm">
+      <p class="from">ONE WORM IS LOOKING RIGHT AT YOU</p>
+      <p class="scrawl">it looks like it wants a name</p>
+      <input id="wormName" maxlength="16" autocomplete="off" placeholder="Wormothy" style="font:700 26px 'Gaegu',cursive;padding:6px 10px;border:2px solid #2e3b33;border-radius:8px;background:#f4f7ef;color:#2e3b33">
+      <div class="acts"><button type="submit" id="nameGo">Name it</button><button type="button" id="nameNo">Leave it be</button></div>
+    </form>`);
+  $('wormName').focus();
+  $('nameNo').addEventListener('click', hideOverlay);
+  $('nameForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const name = $('wormName').value.trim().replace(/[<>&"]/g, '') || 'Wormothy';
+    S.wormName = name; if (S.slots[slot] === 'worm') S.slots[slot] = null;
+    hideOverlay(); unlock('named');
+    toast(`${name} moves into a cup on top of the register. ${name} is not for sale.`, 4);
+    updAll();
+  });
+}
+// 3. the register keypad: the year Earl opened the shop brings someone from the lake
+let keyBuf = '';
+function openKeypad(){
+  keyBuf = '';
+  showOverlay(`
+    <div class="journal" role="dialog" aria-label="Register keypad" style="max-width:300px">
+      <p class="reg" id="kpScreen" style="background:#0e1d12;padding:6px 10px;border-radius:4px;min-height:1.2em;letter-spacing:.3em">----</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        ${[1,2,3,4,5,6,7,8,9,'CLR',0,'ENT'].map(k => `<button data-kp="${k}" style="font-family:'VT323',monospace;font-size:24px">${k}</button>`).join('')}
+      </div>
+      <button id="kpClose">Close</button>
+    </div>`);
+  $('overlay').querySelectorAll('[data-kp]').forEach(b => b.addEventListener('click', () => keypad(b.dataset.kp)));
+  $('kpClose').addEventListener('click', hideOverlay);
+}
+function keypad(k){
+  const scr = $('kpScreen');
+  if (k === 'CLR'){ keyBuf = ''; scr.textContent = '----'; tone(300,.05,'square',.02); return; }
+  if (k === 'ENT'){
+    let out = 'ERR';
+    if (keyBuf === '1987' && !S.lakeCalled && ['idle','order','talk','change'].includes(phase)){
+      S.lakeCalled = true; queue.unshift(lakeLady()); totalCust++; out = 'OK';
+      setTimeout(() => { hideOverlay(); toast('Somewhere outside, something big splashes.', 4); }, 700);
+    } else if (keyBuf === '1987') out = S.lakeCalled ? 'USED' : 'OPEN 1ST';
+    else if (keyBuf === '0000') out = 'NICE TRY';
+    scr.textContent = out; tone(out === 'OK' ? 1200 : 200,.2,'square',.03); keyBuf = '';
+    return;
+  }
+  if (keyBuf.length >= 4) return;
+  keyBuf += k; scr.textContent = keyBuf.padEnd(4, '-'); tone(900,.04,'square',.02);
+}
+
+// ---------- Gordon helps ----------
+let fetchLeft = 0, fetchQ = [], fetchT = 0, reach = null;  // reach: a tentacle animation {t, x, y, dur}
+function gordonFetch(){
+  if (phase !== 'order' || !helper() || fetchLeft <= 0 || fetchQ.length) return;
+  const have = o(); counter.forEach(c => have[c.k]++);
+  const need = [];
+  ['worm','cricket','minnow'].forEach(k => {
+    let n = cust.order[k] - have[k], inFridge = stock(k);
+    while (n-- > 0 && inFridge-- > 0) need.push(k);
+  });
+  if (!need.length){ toast(cust.order.coffee && !have.coffee ? 'Gordon doesn\'t do coffee.' : 'Gordon can\'t find anything else they need.'); return; }
+  fetchLeft--; fetchQ = need; fetchT = .2; unlock('fetch');
+  toast(cust.order.coffee > have.coffee ? 'Gordon fetches the bait. You\'re on your own for the coffee.' : 'Gordon reaches out of the fridge to help.');
+  updAll();
+}
+function tickFetch(dt){
+  if (reach){ reach.t += dt; if (reach.t > reach.dur) reach = null; }
+  if (!fetchQ.length) return;
+  if (phase !== 'order'){ fetchQ = []; return; }
+  fetchT -= dt;
+  if (fetchT > 0) return;
+  const k = fetchQ.shift(), j = S.slots.lastIndexOf(k);
+  if (j >= 0 && counter.length < 10){
+    S.slots[j] = null; counter.push({k, scanned:false, born:T, scanT:-9});
+    reach = {t:0, x:200 + (counter.length - 1) * 27, y:280, dur:.45};
+    tone(260 + Math.random() * 60,.12,'sine',.05);
+  }
+  fetchT = .5; updAll();
+}
+function gordonScare(){
+  thump(true); setTimeout(() => thump(true), 250);
+  reach = {t:0, x:400, y:150, dur:1.1};
+  unlock('scare');
+  setTimeout(() => { S.cash += 8; nightTips += 8; floatAt(420, 250, '+$8'); toast('He ran off so fast he dropped $8. Gordon looks very pleased with himself.', 4); updAll(); }, 1300);
+}
+
+// ---------- Gordon ----------
+function feed(){
+  if (fr.rattle <= 0){
+    toast(pick(['It\'s dark back there. Something is breathing.','You hear water, very far down.', stage() >= 2 ? 'Something waves at you.' : 'Two eyes open, then close.']));
+    return;
+  }
+  const before = stage();
+  if (stock('glow') > 0){
+    removeStock('glow', 1); S.fed += 2;
+    toast('You give him a glowing worm. He LOVES it.'); unlock('glow');
+  } else {
+    const need = hunger(), have = stock('worm') + S.box.worm;
+    if (have < need){ toast(`He wants ${NUM[need]} worm${need > 1 ? 's' : ''}. You don't have enough.`); return; }
+    for (let i = 0; i < need; i++){ const j = S.slots.lastIndexOf('worm'); if (j >= 0) S.slots[j] = null; else S.box.worm--; }
+    S.fed += 1;
+    toast(need > 1 ? 'He takes two worms now. He\'s getting bigger.' : pick(['You push a worm into the back. It goes quiet.','It takes the worm very gently.']));
+  }
+  if (stage() >= 4) unlock('gordon_full');
+  slurp(); fr.rattle = 0; fr.timer = 14 + Math.random() * 14;
+  floatAt(300, 40, stage() > before ? 'he grew!' : 'munch', '#f5e46a', 'fridge');
+  if (Math.random() < .45) setTimeout(giveGift, 1200);
+  updAll();
+}
+function giveGift(){
+  const left = GIFTS.filter(g => !S.gifts.includes(g.id) && (!g.night || S.night >= g.night));
+  if (!left.length) return;
+  const g = left[0];
+  S.gifts.push(g.id); g.fn?.(); unlock('gift_' + g.id);
+  toast(`Gordon pushes something out of the back: ${g.text}.`, 4);
+  floatAt(view === 'fridge' ? 300 : 688, view === 'fridge' ? 100 : 60, 'a gift!', '#f5e46a', view);
+  tone(1200,.2,'sine',.05); tone(1600,.3,'sine',.04,.1);
+  updAll();
+}
+function fridgeEat(){
+  fr.rattle = 0; fr.timer = 12 + Math.random() * 15; S.ignored++;
+  let e = 0;
+  for (let n = 0; n < 2; n++){
+    let i = S.slots.lastIndexOf('worm'); if (i < 0) i = S.slots.lastIndexOf('minnow'); if (i < 0) i = S.slots.lastIndexOf('glow');
+    if (i < 0) break; S.slots[i] = null; e++;
+  }
+  thump(true);
+  if (counter.length && phase === 'order'){
+    const i = counter.length - 1, c = counter.pop();
+    if (view === 'shop') steal = {t:0, x:200 + i * 27, y:280, k:c.k};
+    toast('Something reached out of the fridge and took an item off your counter.');
+  } else {
+    toast(e ? `The knocking stops. ${e} thing${e > 1 ? 's are' : ' is'} missing from the fridge.` : 'The knocking stops. It sounds hungry.');
+  }
+  updAll();
+}
+
+// ---------- end of night ----------
+function endNight(){
+  if (S.deep){
+    // no receipt at the bottom of the lake: Earl's question decides the ending
+    view = 'shop'; cust = null; setPhase('between');
+    S.deepToll = nightSales >= quota();
+    return ending(S.deepChoice === 'stay' ? 'deep_stay' : 'deep_home');
+  }
+  onCall = false; ph.done = true; ph.ring = 0; $('phoneBtn').hidden = true;
+  if (S.night === 5 && !S.earlCall) S.missedEarl = true;
+  view = 'shop'; setPhase('between'); fr.rattle = 0; cust = null;
+  const met = nightSales >= quota();
+  if (met){ S.quotasMet++; S.missedLast = false; } else { S.strikes++; S.missedLast = true; }
+  const dead = S.box.worm; S.box.worm = 0;
+  updAll();
+  const grew = stage() > Math.min(4, Math.floor(lastStart.fed / 2));
+  let note = dead ? `${dead} worm${dead > 1 ? 's' : ''} left in the delivery box dried out. ` : '';
+  if (grew) note += 'The hatch in the back of the fridge is bigger than it was yesterday. ';
+  if (S.missedEarl) note += 'The answering machine is blinking. One message, mostly static: "...kid? ...never mind. Feed him." ';
+  if (S.fed >= 1 && GNOTES[S.night - 1]) note += 'Something is taped inside the fridge door.';
+  else if (S.ignored >= 2) note += 'The back wall of the fridge is warm. It should not be warm.';
+  else note += 'The fridge hums. The parking lot is empty.';
+  const last = S.night >= 5, shortage = S.night === 3, wmax = shortage ? 4 : 24;
+  const used = S.slots.filter(Boolean).length, free = nSlots() - used, left = S.box.cricket + S.box.minnow + S.box.glow;
+  const ord = last ? {worm:0, cricket:0, minnow:0, vic:0}
+    : {worm:Math.min(free, 10, wmax), cricket:Math.min(Math.max(0, free - 10), 3), minnow:Math.min(Math.max(0, free - 13), 3), vic:0};
+  const ROWS = [
+    {k:'worm', label:'HANK\'S WORMS', price:'$1 EA', cost:1, max:wmax},
+    {k:'cricket', label:'HANK\'S CRICKETS', price:'$2 EA', cost:2, max:24},
+    {k:'minnow', label:'HANK\'S MINNOWS', price:'$2 EA', cost:2, max:24},
+    {k:'vic', label:'VIC\'S WORMS', price:'3 FOR $1', cost:1, max:8},
+  ];
+  const newPrices = {...S.prices};
+  const buy = new Set();
+  const stepper = (attr, k, val, label) => `<span class="step"><button ${attr}="${k}" data-d="-1" aria-label="Lower ${label}">-</button><output id="${attr}_${k}">${val}</output><button ${attr}="${k}" data-d="1" aria-label="Raise ${label}">+</button></span>`;
+  const shopSections = last ? '<p class="fine">Last night. No orders, no upgrades. Just go home.</p>' : `
+      <p class="lbl">TOMORROW'S PRICES</p>
+      ${['worm','cricket','minnow'].map(k => `<div class="r"><span>${ITEMS[k].name.toUpperCase()} <span class="fine">(USUAL $${ITEMS[k].price})</span></span>${stepper('data-p', k, '$' + newPrices[k], ITEMS[k].name + ' price')}</div>`).join('')}
+      <p class="fine" id="priceNote"></p>
+      <hr>
+      <p class="lbl">UPGRADES</p>
+      ${UPGRADES.map(u => S.up[u.id]
+        ? `<div class="r"><span>${u.name}</span><span class="good">OWNED</span></div>`
+        : `<label class="r" for="u_${u.id}"><span><input type="checkbox" id="u_${u.id}" data-u="${u.id}">${u.name}<br><span class="fine">${u.desc}</span></span><span>$${u.cost}</span></label>`).join('')}
+      <hr>
+      <p class="lbl">ORDER FOR TOMORROW &middot; FRIDGE ${used}/${nSlots()}${left ? ` + ${left} IN BOX` : ''}</p>
+      ${shortage ? '<p class="fine bad">HANK\'S: WORM SHORTAGE. MAX 4 CUPS TOMORROW.</p>' : ''}
+      ${ROWS.map(rw => `<div class="r"><span>${rw.label} ${rw.price}</span>${stepper('data-k', rw.k, ord[rw.k], rw.label)}</div>`).join('')}
+      <p class="fine">Vic's are cheap. About 4 in 10 arrive glowing. Customers won't buy those. Gordon will.</p>
+      <p class="fine" id="fitNote"></p>`;
+  showOverlay(`
+    <div class="receipt" role="dialog" aria-label="End of night">
+      <h2>NIGHT ${S.night} &middot; CLOSED</h2>
+      <div class="r"><span>SALES</span><span>$${nightSales}</span></div>
+      <div class="r"><span>BANK QUOTA $${quota()}</span><span class="${met ? 'good' : 'bad'}">${met ? 'MET' : `MISSED (${S.strikes}/2)`}</span></div>
+      <div class="r"><span>TIPS &amp; GIFTS</span><span>$${nightTips}</span></div>
+      <div class="r big"><span>IN THE DRAWER</span><span>$${S.cash}</span></div>
+      <hr>
+      <p class="lbl">BILLS</p>
+      <label class="r" for="bPower"><span><input type="checkbox" id="bPower" checked>ELECTRIC</span><span>$${POWER}</span></label>
+      <hr>
+      ${shopSections}
+      <hr>
+      <div class="r big"><span>LEFT OVER</span><span id="bLeft"></span></div>
+      <p class="note">${note}</p>
+      <button id="bGo" class="go">Close up and go home</button>
+    </div>`);
+  const recalc = () => {
+    const cost = ($('bPower').checked ? POWER : 0) + ROWS.reduce((s, rw) => s + ord[rw.k] * rw.cost, 0)
+      + UPGRADES.reduce((s, u) => s + (buy.has(u.id) ? u.cost : 0), 0);
+    const lft = S.cash - cost;
+    $('bLeft').textContent = (lft < 0 ? '-$' : '$') + Math.abs(lft);
+    $('bLeft').className = lft < 0 ? 'bad' : '';
+    $('bGo').disabled = lft < 0;
+    $('bGo').textContent = lft < 0 ? 'You can\'t afford all that' : 'Close up and go home';
+    if (!last){
+      const space = free + (buy.has('fridge') ? 6 : 0), n = ord.worm + ord.cricket + ord.minnow + ord.vic * 3;
+      ROWS.forEach(rw => $('data-k_' + rw.k).textContent = rw.k === 'vic' ? `${ord.vic * 3}` : ord[rw.k]);
+      ['worm','cricket','minnow'].forEach(k => $('data-p_' + k).textContent = '$' + newPrices[k]);
+      $('fitNote').textContent = n > space ? `Only ${space} will fit in the fridge. The rest waits in the box.` : `${space - n} fridge space${space - n === 1 ? '' : 's'} left over.`;
+      const up = ['worm','cricket','minnow'].filter(k => newPrices[k] > ITEMS[k].price), down = ['worm','cricket','minnow'].filter(k => newPrices[k] < ITEMS[k].price);
+      $('priceNote').textContent = up.length ? 'Higher prices make each sale worth more, but some customers will walk out. The regulars will notice.'
+        : down.length ? 'Cheap prices mean happier customers and more tips, but less money per sale.' : 'Usual prices. Nobody will complain.';
+    }
+    return cost;
+  };
+  $('overlay').querySelectorAll('.step button').forEach(b => b.addEventListener('click', () => {
+    const d = +b.dataset.d;
+    if (b.dataset.k){ const rw = ROWS.find(x => x.k === b.dataset.k); ord[rw.k] = Math.max(0, Math.min(rw.max, ord[rw.k] + d)); }
+    if (b.dataset.p){ const k = b.dataset.p, [lo, hi] = PRICE_RANGE[k]; newPrices[k] = Math.max(lo, Math.min(hi, newPrices[k] + d)); }
+    recalc();
+  }));
+  $('overlay').querySelectorAll('input[data-u]').forEach(c => c.addEventListener('change', () => {
+    c.checked ? buy.add(c.dataset.u) : buy.delete(c.dataset.u); recalc();
+  }));
+  $('bPower').addEventListener('change', recalc);
+  recalc();
+  $('bGo').addEventListener('click', () => {
+    const cost = recalc(); if (S.cash < cost) return;
+    S.cash -= cost; S.powerOff = !$('bPower').checked;
+    S.prices = newPrices;
+    buy.forEach(id => { S.up[id] = true; if (id === 'fridge') S.slots.push(...Array(6).fill(null)); if (id === 'pump') S.water = 100; });
+    S.box.worm += ord.worm; S.box.cricket += ord.cricket; S.box.minnow += ord.minnow;
+    let vicWorms = ord.vic * 3;
+    if (S.vicFree && ord.vic > 0){ vicWorms += 3; S.vicFree = false; }
+    for (let i = 0; i < vicWorms; i++) Math.random() < (S.vicMad ? .2 : .4) ? S.box.glow++ : S.box.worm++;
+    if (S.strikes >= 2) return ending(S.fed >= (S.pellOk ? 2 : 4) ? 'pell' : 'repo');
+    if (S.night >= 5) return ending(S.fed >= FRIEND ? 'earl' : S.ignored >= 3 ? 'empty' : 'survived');
+    showGordonNote(() => { S.night++; hideOverlay(); showNote(); });
+  });
+  $('bGo').focus();
+}
+const ENDINGS = {
+  repo:{eyebrow:'ENDING · REPOSSESSED', title:'The bank takes the shop', text:'Mr. Pell changes the locks and tapes a notice to the door. Through the window you can see the fridge rattling, and nobody is there to open it.'},
+  pell:{eyebrow:'ENDING · INVENTORY', title:'Pell counts the stock', text:'Mr. Pell comes to take the keys. He opens the fridge to count the worms. The door swings shut behind him. The bank has not called since, and the shop is still yours.'},
+  earl:{eyebrow:'ENDING · UNCLE EARL', title:'Earl comes back up', text:'On the last morning the back of the fridge swings open. Uncle Earl climbs out, damp and grinning, holding a fishing rod and a very large, very polite worm on a leash. "Told you you\'d know what to do," he says.'},
+  empty:{eyebrow:'ENDING · EMPTY', title:'The fridge is open', text:'On the last morning the fridge door is hanging open. The worms are gone. The back of the fridge is gone. Cold air comes up from somewhere far below the shop, and it smells like lake water.'},
+  deep_stay:{eyebrow:'ENDING · THE DEEP SHIFT', title:'You stay down', text:'You hang your apron next to Earl\'s. Up top, Dennis minds the shop on weekends and tells everyone you went fishing. Down here the light is green, the customers pay in sand dollars, and the fishing is unbelievable.'},
+  deep_home:{eyebrow:'ENDING · THE DEEP SHIFT', title:'You go back up', text:'Earl walks you to the drain. "Somebody has to keep the lights on," he says. You climb back out through the fridge with a pocket full of sand dollars, and flip the sign to OPEN. Earl comes up for dinner on Sundays.'},
+  survived:{eyebrow:'ENDING · SURVIVED', title:'You made it to Saturday', text:'Dennis waves to you from the parking lot. The sun comes up over the lake. The fridge hums, as if Gordon hasn\'t made up his mind about you yet.'},
+};
+function ending(key){
+  setPhase('end');
+  const e = ENDINGS[key];
+  unlock('end_' + key, true);
+  let extra = '';
+  if (key === 'earl' && S.earlCall === 'home') extra += ' "You kept the lights on," he says. "I noticed."';
+  if (key === 'earl' && S.gifts.includes('watch')) extra += ' He\'s very glad you found his watch.';
+  if (key === 'earl' && S.down) extra += ' Then he holds the fridge door open for you. "Come on down, kid. The fishing is unbelievable." You flip the sign to CLOSED and follow him.';
+  if (key === 'pell' && S.pellOk) extra += ' Taped to the fridge the next morning: "thank you for permission."';
+  if (key.startsWith('deep')) extra += S.deepToll ? ' The lake got its toll, and it was pleased.' : ' You didn\'t make the lake\'s toll. The lake doesn\'t mind. The lake is patient.';
+  S.lastEnding = key;
+  const canDive = key === 'earl';
+  showOverlay(`
+    <div class="titlecard" role="dialog" aria-label="Ending">
+      <p class="eyebrow">${e.eyebrow}</p>
+      <h1>${e.title}</h1>
+      <p>${e.text}${extra}</p>
+      <div class="acts">${canDive ? '<button class="primary" id="dive">Follow Earl down (Night 6)</button>' : ''}<button ${canDive ? '' : 'class="primary"'} id="epiGo">The next morning</button></div>
+      <div class="stats"><span>NIGHTS WORKED ....... ${S.night}</span><span>QUOTAS MET .......... ${S.quotasMet}</span><span>GORDON'S SIZE ....... ${stage() + 1}/5</span><span>TIMES HE ATE ALONE .. ${S.ignored}</span><span>GIFTS FOUND ......... ${S.gifts.length}/${GIFTS.length}</span><span>DRAWER .............. $${S.cash}</span></div>
+      <div class="acts"><button id="again">Clock in again</button><button id="jOpen">Journal (${ALL_SECRETS.filter(s => found.has(s.id)).length}/${ALL_SECRETS.length})</button></div>
+    </div>`);
+  if (canDive) $('dive').addEventListener('click', startDeep);
+  $('epiGo').addEventListener('click', () => epilogue(key));
+  $('again').addEventListener('click', () => { S = fresh(); hideOverlay(); showNote(); });
+  $('jOpen').addEventListener('click', () => showJournal(() => ending(key)));
+  ($('dive') || $('epiGo')).focus();
+}
+// the daytime epilogue: a picture of the shop the next morning, and where everyone ended up
+let epiCtx = null;
+function epilogue(key){
+  const lost = key === 'repo', gone = key === 'empty';
+  const lines = [];
+  if (key === 'deep_stay') lines.push('You work the Deep Shift now. Earl says you\'re a natural.');
+  else if (key === 'deep_home' || key === 'earl') lines.push('Earl comes up for dinner on Sundays. He always brings a jar of air.');
+  else if (lost) lines.push('The bank put a SOLD sign on the shop. Nobody has bought it. The fridge still hums at night.');
+  else if (gone) lines.push('Earl never came back up. Some nights you can hear him laughing in the drain.');
+  else lines.push('Earl is still down there somewhere. The shop is yours.');
+  lines.push(stage() >= 4 ? 'Gordon got too big for the fridge. He lives under the shop now and waves through the floorboards.'
+    : S.fed ? 'Gordon is still in the fridge, still growing, still knocking twice a night.' : 'The fridge is quiet. Too quiet.');
+  lines.push(S.wormName ? `Dennis bought a new worm and named it after ${S.wormName}.` : 'Dennis still comes in for one worm a night. He wears the tie on Fridays.');
+  lines.push(S.milo >= 2 ? 'Milo caught a fish bigger than his grandpa. He framed the bottle caps.' : 'Milo learned to dig his own worms. He\'s very proud.');
+  lines.push(S.barbGlow ? 'Barb and the thing in the lake write each other letters.' : 'Barb is still out on the lake. So is it.');
+  lines.push(S.vicMad ? 'Vic won\'t say your name.' : found.has('vic') ? 'Vic opened a second drain. Business is glowing.' : 'Nobody has seen Vic. Everybody has bought from Vic.');
+  lines.push(key === 'pell' ? 'Mr. Pell was never seen again. The bank sent a fruit basket.' : S.strikes ? 'Mr. Pell still checks the numbers. He stands very far from the fridge.' : 'Mr. Pell got a promotion. He doesn\'t know why.');
+  showOverlay(`
+    <div class="titlecard" role="dialog" aria-label="The next morning">
+      <p class="eyebrow">THE NEXT MORNING</p>
+      <canvas id="epi" style="width:100%;height:auto;aspect-ratio:800/380;border:3px solid #050a0b;border-radius:10px 4px 12px 6px;display:block"></canvas>
+      <ul style="margin:0;padding-left:1.1em;display:grid;gap:6px">${lines.map(l => `<li>${l}</li>`).join('')}</ul>
+      <div class="acts"><button class="primary" id="again">Clock in again</button><button id="jOpen">Journal (${ALL_SECRETS.filter(s => found.has(s.id)).length}/${ALL_SECRETS.length})</button></div>
+    </div>`);
+  const c = $('epi'); c.width = W * dpr; c.height = H * dpr;
+  epiCtx = c.getContext('2d'); epiCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  $('again').addEventListener('click', () => { epiCtx = null; S = fresh(); hideOverlay(); showNote(); });
+  $('jOpen').addEventListener('click', () => { epiCtx = null; showJournal(() => epilogue(key)); });
+  $('again').focus();
+}
+function showTitle(){
+  hideOverlay();
+  setPhase('start');
+  const resume = S.night > 1, n = ALL_SECRETS.filter(s => found.has(s.id)).length;
+  document.querySelector('.wrap').classList.add('titlemode');
+  const box = $('titleBox'); box.hidden = false;
+  box.innerHTML = `
+    <p class="eyebrow">11:00 PM &middot; ROUTE 9 &middot; OPEN ALL NIGHT</p>
+    <h1>Night Shift at the Bait Shop</h1>
+    <p>Uncle Earl went fishing three weeks ago and didn't come back. Now the bait shop is yours, along with his bank loan, his regulars, and whatever keeps knocking inside the fridge.</p>
+    <p class="small">Five nights. Stock the fridge, ring up every item, make the bank's quota. Answer the phone. Sound on is best.</p>
+    <div class="acts"><button class="primary" id="go">${resume ? `Clock in (night ${S.night})` : 'Clock in'}</button><button id="jTitle">Journal (${n}/${ALL_SECRETS.length})</button>${found.has('end_earl') ? '<button id="tDeep" class="warn">The Deep Shift</button>' : ''}</div>
+    <div class="row"><button id="tMusic">Turn on the radio</button><label class="radio"><span class="sr">Radio station</span><select id="radioTitle"></select></label></div>`;
+  fillRadio($('radioTitle'));
+  $('go').addEventListener('click', () => {
+    audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode'); showNote();
+  });
+  $('jTitle').addEventListener('click', () => showJournal(hideOverlay));
+  $('tDeep')?.addEventListener('click', () => {
+    // replaying the Deep Shift from the title: a fresh run that has already reached Earl
+    audio(); box.hidden = true; document.querySelector('.wrap').classList.remove('titlemode');
+    S = fresh(); S.fed = 6; startDeep();
+  });
+  $('tMusic').addEventListener('click', () => {
+    audio(); if (track < 0) setTrack(0);
+    $('tMusic').textContent = 'Radio on'; $('tMusic').disabled = true;
+  });
+  $('go').focus({preventScroll:true});
+}
+function showOverlay(html){ const ov = $('overlay'); ov.innerHTML = html; ov.hidden = false; }
+function hideOverlay(){ $('overlay').hidden = true; $('overlay').innerHTML = ''; }
+
+// ---------- UI ----------
+let typeTimer;
+function say(who, text){
+  if (who) $('who').textContent = who; else $('who').innerHTML = '&nbsp;';
+  $('lineSr').textContent = who ? `${who}: ${text}` : text;
+  const el = $('line'); clearInterval(typeTimer);
+  if (RM){ el.textContent = text; return; }
+  let i = 0; el.textContent = '';
+  typeTimer = setInterval(() => {
+    el.textContent = text.slice(0, ++i);
+    if (who && i % 3 === 0 && text[i] !== ' ') tone(220 + (who.length * 23) % 200 + Math.random() * 30, .03, 'triangle', .012);
+    if (i >= text.length) clearInterval(typeTimer);
+  }, 18);
+}
+function toast(text, secs = 3){ const t = $('toast'); t.textContent = text; t.hidden = false; toastT = secs; }
+function floatAt(x, y, txt, col = '#d6f07f', where = 'shop'){ floats.push({x, y, txt, col, t:0, where}); }
+function setPhase(p){ phase = p; updAll(); }
+function updAll(){ updHUD(); updPanels(); }
+function updPanels(){
+  const fv = view === 'fridge', oc = onCall;
+  const show = {
+    pStock: !oc && !fv && phase === 'stock',
+    pOrder: !oc && !fv && phase === 'order',
+    pFridge: !oc && fv && ['stock','order','idle'].includes(phase),
+    pChange: !oc && phase === 'change',
+    pTalk: !oc && phase === 'talk',
+    pPhone: oc,
+  };
+  Object.entries(show).forEach(([id, v]) => $(id).hidden = !v);
+  $('pIdle').hidden = Object.values(show).some(Boolean);
+  if (!S) return;
+  if (show.pOrder){
+    const got = o(); counter.forEach(c => got[c.k]++);
+    const sc = counter.filter(c => c.scanned).length;
+    $('counterTxt').innerHTML = counter.length
+      ? `On the counter: <b>${orderText(got)}</b> &middot; ${sc}/${counter.length} scanned &middot; register <b>$${scannedTotal()}</b>`
+      : 'The counter is empty. Open the fridge to get their order.';
+    $('oScan').disabled = !counter.some(c => !c.scanned);
+    $('oScan').textContent = S.up.scanner ? 'Scan everything' : 'Scan next item';
+    $('oCoffee').textContent = S.deep ? 'Fill a jar of air' : 'Pour a coffee';
+    $('oFridge').textContent = S.deep ? 'Open the lost & found' : 'Open the fridge';
+    $('oGordon').hidden = !helper();
+    $('oGordon').disabled = fetchLeft <= 0 || fetchQ.length > 0;
+    $('oGordon').textContent = `Ask Gordon to fetch it (${fetchLeft} left tonight)`;
+    $('oBack').disabled = !counter.length;
+  }
+  if (show.pFridge){
+    STOCK.forEach(k => {
+      const t = $('ft_' + k), b = $('fb_' + k);
+      t.textContent = `${ITEMS[k].name} (${stock(k)})`; t.disabled = phase !== 'order' || !stock(k);
+      b.textContent = `${ITEMS[k].name} (box ${S.box[k]})`; b.disabled = !S.box[k];
+    });
+    $('ft_glow').hidden = !stock('glow'); $('fb_glow').hidden = !S.box.glow;
+    $('fFeed').hidden = !(fr.rattle > 0);
+    $('fWater').hidden = !!S.up.pump;
+    $('fWater').textContent = `Change the minnow water (${Math.round(S.water)}%)`;
+    $('fFeed').textContent = stock('glow') ? 'Feed Gordon a glowing worm' : `Feed Gordon ${NUM[hunger()]} worm${hunger() > 1 ? 's' : ''}`;
+  }
+}
+function clock(){
+  if (phase === 'between' || phase === 'end') return '5:00 AM';
+  const prog = totalCust ? Math.min(1, served / totalCust) : 0;
+  const m = (23*60 + Math.round(prog * 36) * 10) % 1440, h = Math.floor(m / 60);
+  return `${((h + 11) % 12) + 1}:${String(m % 60).padStart(2,'0')} ${h >= 12 ? 'PM' : 'AM'}`;
+}
+function updHUD(){
+  if (!S) return;
+  const q = quota(), met = nightSales >= q;
+  $('hNight').textContent = S.deep ? 'NIGHT 6 · THE DEEP' : `NIGHT ${S.night}/5`;
+  $('hClock').textContent = clock();
+  $('hQuota').textContent = `${S.deep ? 'TOLL' : 'QUOTA'} $${nightSales}/$${q}`;
+  $('hQuota').className = met ? 'met' : '';
+  $('qbar').style.width = Math.min(100, nightSales / q * 100) + '%';
+  $('qbar').className = met ? 'met' : '';
+  $('hCash').textContent = `DRAWER $${S.cash}`;
+}
+
+$('sFridge').addEventListener('click', openFridge);
+$('sOpen').addEventListener('click', openShop);
+$('oFridge').addEventListener('click', openFridge);
+$('oCoffee').addEventListener('click', pour);
+$('oScan').addEventListener('click', scanNext);
+$('oBack').addEventListener('click', () => { putBack(); updAll(); });
+$('oTotal').addEventListener('click', totalUp);
+$('oAway').addEventListener('click', sendAway);
+STOCK.forEach(k => {
+  $('ft_' + k).addEventListener('click', () => takeType(k));
+  $('fb_' + k).addEventListener('click', () => stockFromBox(k));
+});
+$('fFeed').addEventListener('click', feed);
+$('phoneBtn').addEventListener('click', answer);
+$('fWater').addEventListener('click', changeWater);
+$('oGordon').addEventListener('click', gordonFetch);
+$('fClose').addEventListener('click', closeFridge);
+$('cUndo').addEventListener('click', () => { pile = 0; $('cPile').textContent = '$0'; });
+$('cGive').addEventListener('click', give);
+document.querySelectorAll('.cash button').forEach(b => b.addEventListener('click', () => {
+  pile += +b.dataset.d; blip(); $('cPile').textContent = '$' + pile;
+}));
+
+// ---------- canvas hit areas ----------
+const SHELF_Y = [140, 245, 350];
+const slotCols = () => S ? nSlots() / 3 : 6;
+const slotRect = i => { const c = slotCols(), sp = 504 / c; return {x:52 + (i % c) * sp, y:SHELF_Y[Math.floor(i / c)] - 70, w:sp - 10, h:70}; };
+const boxRowRect = j => ({x:600, y:170 + j * 47, w:180, h:45});
+const hatch = () => { const s = S ? stage() : 0; return {cx:300, cy:62 + s * 3, rx:72 + s * 16, ry:26 + s * 6}; };
+const in_ = (p, r) => p[0] >= r.x && p[0] <= r.x + r.w && p[1] >= r.y && p[1] <= r.y + r.h;
+function hit(p){
+  if (!S) return null;
+  if (view === 'fridge'){
+    if (pk.i >= 0){ const sr = slotRect(pk.i); if (in_(p, {x:sr.x, y:sr.y - 40, w:sr.w, h:60})) return {t:'peek'}; }
+    for (let i = 0; i < nSlots(); i++) if (S.slots[i] && in_(p, slotRect(i))) return {t:'slot', i};
+    if (!S.up.pump && in_(p, {x:600, y:100, w:180, h:26})) return {t:'water'};
+    if (boxCount()) for (let j = 0; j < 4; j++) if (S.box[STOCK[j]] && in_(p, boxRowRect(j))) return {t:'box', k:STOCK[j]};
+    const hh = hatch();
+    if (((p[0] - hh.cx) / hh.rx) ** 2 + ((p[1] - hh.cy) / hh.ry) ** 2 <= 1.3) return {t:'hatch'};
+    return null;
+  }
+  if (esc) for (let i = 0; i < esc.bugs.length; i++){ const b = esc.bugs[i]; if (Math.hypot(p[0] - b.x, p[1] - b.y) < 24) return {t:'bug', i}; }
+  if (ph.ring > 0 && in_(p, {x:166, y:94, w:40, h:72})) return {t:'phone'};
+  if (S.tape === 'out' && in_(p, {x:378, y:64, w:36, h:26})) return {t:'tape'};
+  if (!S.tape && ['stock','idle','order','talk'].includes(phase) && in_(p, {x:290, y:42, w:210, h:24})) return {t:'sign', quiet:true};
+  if (['stock','idle','order','talk'].includes(phase) && in_(p, {x:470, y:236, w:124, h:62})) return {t:'keypad'};
+  if (in_(p, {x:600, y:40, w:175, h:260})) return {t:'fridge'};
+  if (boxCount() && in_(p, {x:20, y:238, w:90, h:58})) return {t:'fridge'};
+  if (in_(p, {x:114, y:236, w:52, h:60})) return {t:'coffee'};
+  for (let i = 0; i < counter.length; i++) if (in_(p, {x:188 + i * 27, y:262, w:26, h:36})) return {t:'scan', i};
+  return null;
+}
+const toLogical = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * W, (e.clientY - r.top) / r.height * H]; };
+cv.addEventListener('click', e => {
+  audio();
+  const h = hit(toLogical(e)); if (!h) return;
+  if (h.t === 'peek') nameWorm();
+  else if (h.t === 'sign') knockSign();
+  else if (h.t === 'tape') playTape();
+  else if (h.t === 'keypad') openKeypad();
+  else if (h.t === 'bug') catchBug(h.i);
+  else if (h.t === 'water') changeWater();
+  else if (h.t === 'phone') answer();
+  else if (h.t === 'fridge') openFridge();
+  else if (h.t === 'coffee') pour();
+  else if (h.t === 'scan') scan(h.i);
+  else if (h.t === 'slot') takeSlot(h.i);
+  else if (h.t === 'box') stockFromBox(h.k);
+  else if (h.t === 'hatch') feed();
+});
+cv.addEventListener('mousemove', e => { const h = hit(toLogical(e)); cv.style.cursor = h && !h.quiet ? 'pointer' : 'default'; });
+
+// ---------- update ----------
+let pellKnock = 0, heartT = 0;
+function update(dt){
+  if (cust){ const tgt = cust.anim === 'out' ? 480 : 0; cust.ax += (tgt - cust.ax) * Math.min(1, dt * 6); }
+  if ((phase === 'order' || phase === 'change') && cust){
+    cust.patience -= dt * cust.rate * (S.powerOff ? 1.25 : 1) * (S.up.bell ? .75 : 1);
+    if (cust.patience <= 0){ cust.patience = 0; leave('angry', pick(['Forget it.','I\'ll dig my own worms.','Unbelievable.','Earl was faster than this.'])); }
+  }
+  const pat = $('pat'), p = cust && !cust.talk ? Math.max(0, cust.patience) : (cust ? 1 : 0);
+  pat.style.width = (p * 100) + '%'; pat.classList.toggle('low', p < .35);
+  const open = ['order','change','talk','idle'].includes(phase);
+  if (open){
+    if (fr.rattle > 0){
+      fr.rattle -= dt; fr.thumpAcc -= dt;
+      if (fr.thumpAcc <= 0){ thump(false); fr.thumpAcc = .7; }
+      if (fr.rattle <= 0) fridgeEat();
+    } else if (fr.left > 0){
+      fr.timer -= dt;
+      if (fr.timer <= 0){ fr.rattle = 9 + S.trust * 1.5; fr.left--; fr.thumpAcc = 0; toast(`Gordon is knocking. He wants ${stock('glow') ? 'a glowing worm' : NUM[hunger()] + ' worm' + (hunger() > 1 ? 's' : '')}.`); updPanels(); }
+    }
+    // Gordon reacts to who is at the counter
+    if (cust && cust.pell && cust.anim === 'in' && (stage() >= 1 || S.ignored >= 1)){
+      pellKnock -= dt; if (pellKnock <= 0){ thump(true); pellKnock = .55; }
+    }
+    if (cust && cust.dennis && cust.anim === 'in' && stage() >= 1){
+      heartT -= dt; if (heartT <= 0){ floatAt(660 + Math.random() * 60, 120, '♥', '#ff8aa6'); heartT = .7; }
+    }
+    tickWater(dt);
+    tickEscape(dt);
+    tickFetch(dt);
+    tickPeek(dt);
+    // the wall phone
+    if (!ph.done && !onCall){
+      if (ph.ring > 0){
+        ph.ring -= dt; ph.acc -= dt;
+        if (ph.acc <= 0){ ring(); ph.acc = 2; }
+        if (ph.ring <= 0){
+          ph.done = true; $('phoneBtn').hidden = true;
+          toast('The phone stops ringing.');
+          if (S.night === 5) S.missedEarl = true;
+        }
+      } else {
+        ph.at -= dt;
+        if (ph.at <= 0){ ph.ring = 11; ph.acc = 0; $('phoneBtn').hidden = false; toast('The phone is ringing.'); }
+      }
+    }
+    cricketT -= dt; if (cricketT <= 0){ if (!S.powerOff || Math.random() < .5) chirp(); cricketT = 2 + Math.random() * 5; }
+  }
+  if (HUMG) HUMG.gain.value = S.powerOff ? 0 : .01;
+  // the radio runs off the shop's power
+  if (MUSICG){ const tgt = track >= 0 && !(S.powerOff && open) ? .8 : 0; MUSICG.gain.value += (tgt - MUSICG.gain.value) * Math.min(1, dt * 2); }
+  shake *= Math.exp(-dt * 7); if (shake < .1) shake = 0;
+  if (drawerT > 0) drawerT -= dt;
+  if (steal){ steal.t += dt; if (steal.t > 1.3) steal = null; }
+  floats.forEach(f => f.t += dt); floats = floats.filter(f => f.t < 1.3);
+  if (toastT > 0){ toastT -= dt; if (toastT <= 0) $('toast').hidden = true; }
+}
+
+// ---------- drawing (wobbly "boiling" lines) ----------
+function R(seed){ let s = Math.abs(seed | 0) % 2147483646 + 1; return () => (s = s * 16807 % 2147483647) / 2147483647; }
+function wob(pts, j, r, smooth){
+  const p = pts.map(([x, y]) => [x + (r() - .5) * j, y + (r() - .5) * j]);
+  ctx.beginPath();
+  if (!smooth) p.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+  else {
+    const n = p.length, m = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    const s = m(p[n-1], p[0]); ctx.moveTo(s[0], s[1]);
+    for (let i = 0; i < n; i++){ const q = m(p[i], p[(i+1) % n]); ctx.quadraticCurveTo(p[i][0], p[i][1], q[0], q[1]); }
+  }
+  ctx.closePath();
+}
+function shape(pts, fill, j, r, smooth, lw = 3){
+  wob(pts, j, r, smooth);
+  if (fill){ ctx.fillStyle = fill; ctx.fill(); }
+  ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
+}
+const ell = (cx, cy, rx, ry, n = 16) => Array.from({length:n}, (_, i) => { const t = i / n * Math.PI * 2; return [cx + Math.cos(t) * rx, cy + Math.sin(t) * ry]; });
+const rect = (x, y, w, h) => [[x,y],[x+w/2,y],[x+w,y],[x+w,y+h/2],[x+w,y+h],[x+w/2,y+h],[x,y+h],[x,y+h/2]];
+function line(x1, y1, x2, y2, r, lw = 3, color = INK){
+  ctx.beginPath(); ctx.moveTo(x1 + (r()-.5)*2, y1 + (r()-.5)*2);
+  ctx.quadraticCurveTo((x1+x2)/2 + (r()-.5)*4, (y1+y2)/2 + (r()-.5)*4, x2 + (r()-.5)*2, y2 + (r()-.5)*2);
+  ctx.lineWidth = lw; ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.stroke();
+}
+function text(s, x, y, size, color, font = 'Gaegu', rot = 0, weight = 700, align = 'center'){
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot);
+  ctx.font = `${weight} ${size}px ${font}, cursive`; ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.fillStyle = color; ctx.fillText(s, 0, 0); ctx.restore();
+}
+// a thick pink outlined curve: Gordon's reach
+function tentacle(x0, y0, x1, y1, w, t, amp = 18){
+  const mx = (x0 + x1) / 2, my = (y0 + y1) / 2, wig = RM ? 0 : Math.sin(t * 5) * amp;
+  const path = () => { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.bezierCurveTo(mx + wig, y0 - 30, mx - wig, y1 - 30 + wig * .5, x1, y1); };
+  ctx.lineCap = 'round';
+  path(); ctx.lineWidth = w + 5; ctx.strokeStyle = INK; ctx.stroke();
+  path(); ctx.lineWidth = w; ctx.strokeStyle = PINK; ctx.stroke();
+}
+const easeBack = x => { x = Math.min(1, Math.max(0, x)); const c = 2.2; return 1 + (c + 1) * (x - 1) ** 3 + c * (x - 1) ** 2; };
+// items are drawn in a 22 x 28 box whose bottom-left corner is (x, y)
+// the Deep Shift's stock: things that fell in the lake (same 22 x 28 box)
+function drawDeepItem(k, r, lw){
+  if (k === 'worm' || k === 'glow'){
+    if (k === 'glow'){ ctx.save(); ctx.shadowColor = '#9dff7a'; ctx.shadowBlur = 14; ctx.fillStyle = 'rgba(157,255,122,.35)'; ctx.fillRect(-3, -28, 26, 30); ctx.restore(); }
+    ctx.beginPath(); ctx.arc(8, -20, 6, 0, 7); ctx.lineWidth = lw * 1.2; ctx.strokeStyle = INK; ctx.stroke();
+    shape([[10, -16],[15, -16],[15, 0],[12, 0],[12, -3],[10, -3]], '#e6c65a', 1, r, false, lw);
+    shape([[4, -15],[8, -15],[8, -2],[6, -2],[6, -5],[4, -5]], '#b9c2bd', 1, r, false, lw);
+  } else if (k === 'cricket'){
+    shape([[4, -26],[14, -26],[14, -9],[21, -6],[21, 0],[4, 0]], PINK, 1.5, r, false, lw);
+    ctx.fillStyle = '#f4efdf'; ctx.fillRect(5, -21, 8, 3); ctx.fillRect(5, -15, 8, 3);
+  } else if (k === 'minnow'){
+    shape(rect(3, -26, 14, 14), '#f4f4ef', 1, r, false, lw);
+    ctx.fillStyle = INK; ctx.fillRect(6, -30, 2, 4); ctx.fillRect(12, -30, 2, 4);
+    ctx.beginPath(); ctx.moveTo(10, -12); ctx.bezierCurveTo(10, -2, 22, -8, 18, 0);
+    ctx.lineWidth = lw * 2.4; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = lw * 1.2; ctx.strokeStyle = '#f4f4ef'; ctx.stroke();
+  } else {
+    shape(rect(2, -22, 18, 22), 'rgba(200,230,255,.55)', 1.5, r, false, lw);
+    shape(rect(1, -26, 20, 5), '#8a948a', 1, r, false, lw);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = lw * .8;
+    [[7, -8, 2.5], [13, -14, 2], [10, -5, 1.5]].forEach(([a, b, c]) => { ctx.beginPath(); ctx.arc(a, b, c, 0, 7); ctx.stroke(); });
+  }
+}
+function drawItem(k, x, y, s, r){
+  ctx.save(); ctx.translate(x, y); ctx.scale(s, s);
+  const lw = 2.2 / Math.sqrt(s);
+  if (S && S.deep){ drawDeepItem(k, r, lw); ctx.restore(); return; }
+  if (k === 'worm' || k === 'glow'){
+    if (k === 'glow'){ ctx.save(); ctx.shadowColor = '#9dff7a'; ctx.shadowBlur = 14; ctx.fillStyle = 'rgba(157,255,122,.35)'; ctx.fillRect(-3, -28, 26, 30); ctx.restore(); }
+    shape(rect(0, -22, 20, 22), k === 'glow' ? '#e8ffd9' : '#f2ece0', 1.5, r, false, lw);
+    shape(rect(-2, -27, 24, 6), k === 'glow' ? '#9dff7a' : PINK, 1, r, false, lw);
+    line(5, -12, 15, -10, r, lw * .8, k === 'glow' ? '#5ccf3a' : PINK);
+  } else if (k === 'cricket'){
+    shape([[0, 0],[22, 0],[19, -26],[3, -26]], '#c9a66b', 1.5, r, false, lw);
+    ctx.fillStyle = INK; [[7,-9],[13,-15],[10,-6],[15,-8]].forEach(([a, b]) => ctx.fillRect(a, b, 2, 1.5));
+  } else if (k === 'minnow'){
+    shape([[8, -24],[14, -24],[11, -20]], '#8cc6e6', 1, r, false, lw);
+    shape(ell(11, -11, 12, 11, 12), S && S.water < 40 ? (S.water < 20 ? '#8f8a5a' : '#9fb8a6') : '#8cc6e6', 1.5, r, true, lw);
+    ctx.fillStyle = '#e6d36a'; ctx.fillRect(6, -12, 9, 3); ctx.fillRect(14, -13, 3, 5);
+    if (S && S.up.pump && !RM){ ctx.fillStyle = 'rgba(255,255,255,.8)'; const b = (T * 1.5) % 1; ctx.fillRect(12, -4 - b * 14, 2, 2); ctx.fillRect(8, -2 - ((b + .5) % 1) * 14, 2, 2); }
+  } else {
+    shape(rect(2, -20, 17, 20), '#ffffff', 1.5, r, false, lw);
+    ctx.fillStyle = '#6b4a2e'; ctx.fillRect(4, -18, 13, 4);
+  }
+  ctx.restore();
+}
+function eyes(cx, cy, n, spread, size, t){
+  if (!RM && (t % 3.5) < .16) return;
+  for (let i = 0; i < n; i++){
+    const x = cx + (n === 1 ? 0 : (i / (n - 1) - .5) * spread), y = cy + (i % 2 ? -size * .9 : 0);
+    ctx.fillStyle = '#f5e46a'; ctx.beginPath(); ctx.arc(x, y, size, 0, 7); ctx.fill();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(x + 1, y + 1, size * .4, 0, 7); ctx.fill();
+  }
+}
+const eyeCount = () => [2, 2, 3, 3, 5][stage()];
+
+function draw(t){
+  const b = RM ? 0 : Math.floor(t * 7);
+  const r = k => R(b * 131 + k * 7919 + 1);
+  const dark = S && S.powerOff;
+  const flick = !dark && !RM && Math.random() < .012;
+  const on = !dark && !flick;
+  ctx.save();
+  if (shake) ctx.translate((Math.random() - .5) * shake, (Math.random() - .5) * shake);
+  if (phase === 'start'){ drawOutside(t, r); ctx.restore(); return; }
+  if (S && view === 'fridge') drawFridgeView(t, r, on);
+  else drawShop(t, r, on);
+  if (dark){
+    ctx.fillStyle = 'rgba(3,6,8,.58)'; ctx.fillRect(-20, -20, W + 40, H + 40);
+    ctx.globalCompositeOperation = 'lighter';
+    const [gx, gy] = view === 'fridge' ? [300, 190] : [687, 170];
+    const g = ctx.createRadialGradient(gx, gy, 10, gx, gy, view === 'fridge' ? 320 : 200);
+    g.addColorStop(0, 'rgba(120,220,180,.3)'); g.addColorStop(1, 'rgba(120,220,180,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+  }
+  if (S && S.deep){
+    // underwater: blue wash, slanting light, rising bubbles
+    ctx.fillStyle = 'rgba(16,70,120,.34)'; ctx.fillRect(-20, -20, W + 40, H + 40);
+    ctx.fillStyle = 'rgba(190,240,255,.07)';
+    for (let i = 0; i < 4; i++){
+      const x = 80 + i * 200 + (RM ? 0 : Math.sin(t * .4 + i) * 30);
+      ctx.beginPath(); ctx.moveTo(x, -10); ctx.lineTo(x + 60, -10); ctx.lineTo(x + 140, H + 10); ctx.lineTo(x + 40, H + 10); ctx.fill();
+    }
+    ctx.strokeStyle = 'rgba(230,250,255,.6)'; ctx.lineWidth = 1.5;
+    for (let i = 0; i < 14; i++){
+      let n = 0; const q = () => scatter(i * 7 + 500 + n++);
+      const sp = 20 + q() * 30, x0 = q() * W;
+      const y = H - ((t * sp + q() * H) % (H + 20)), x = x0 + (RM ? 0 : Math.sin(t * 2 + i) * 4);
+      ctx.beginPath(); ctx.arc(x, y, 2 + q() * 3, 0, 7); ctx.stroke();
+    }
+  }
+  floats.forEach(f => {
+    if (f.where !== view) return;
+    ctx.globalAlpha = Math.max(0, 1 - f.t / 1.3);
+    ctx.save(); ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+    text(f.txt, f.x, f.y - f.t * 34, 24, f.col, f.txt[0] === '+' ? 'VT323' : 'Gaegu', 0, f.txt[0] === '+' ? 400 : 700);
+    ctx.restore(); ctx.globalAlpha = 1;
+  });
+  ctx.restore();
+}
+// title screen: the shop seen from the parking lot
+// a well-mixed hash, so neighbouring seeds don't line up the way R's first value does
+function scatter(n){ const x = Math.sin(n * 12.9898 + 78.233) * 43758.5453; return x - Math.floor(x); }
+const STARS = Array.from({length:40}, (_, i) => [scatter(i * 3) * 800, scatter(i * 3 + 1) * 150, scatter(i * 3 + 2) * 6]);
+function drawOutside(t, r, day){
+  const sky = ctx.createLinearGradient(0, 0, 0, 300);
+  sky.addColorStop(0, day ? '#7cc4ea' : '#070d22'); sky.addColorStop(1, day ? '#e6f4f2' : '#1b2a3a');
+  ctx.fillStyle = sky; ctx.fillRect(-20, -20, W + 40, H + 40);
+  if (!day){
+    STARS.forEach(([x, y, p]) => { ctx.globalAlpha = RM ? .7 : .4 + .6 * Math.abs(Math.sin(t * .8 + p)); ctx.fillStyle = '#dfe6f5'; ctx.fillRect(x, y, 2, 2); });
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#efe8c2'; ctx.beginPath(); ctx.arc(690, 64, 24, 0, 7); ctx.fill();
+  } else {
+    ctx.save(); ctx.shadowColor = '#fff3b0'; ctx.shadowBlur = 30;
+    ctx.fillStyle = '#ffe38a'; ctx.beginPath(); ctx.arc(690, 64, 30, 0, 7); ctx.fill(); ctx.restore();
+    [[120, 60], [420, 40]].forEach(([cx, cy], i) => shape(ell(cx + (RM ? 0 : Math.sin(t * .2 + i) * 10), cy, 50, 16, 14), '#ffffff', 3, r(290 + i), true, 2));
+  }
+  // tree line and lake
+  ctx.fillStyle = day ? '#3f6b4a' : '#0c1a1a';
+  ctx.beginPath(); ctx.moveTo(0, 250);
+  for (let x = 0; x <= 800; x += 20) ctx.lineTo(x, 236 - Math.abs(Math.sin(x * .07)) * 26 - (x % 60 === 0 ? 14 : 0));
+  ctx.lineTo(800, 260); ctx.lineTo(0, 260); ctx.fill();
+  shape([[520, 262],[820, 256],[820, 330],[560, 320]], day ? '#4a9ccc' : '#10223a', 3, r(300));
+  for (let i = 0; i < 4; i++) line(660 + (i % 2) * 20, 272 + i * 12, 710 - (i % 2) * 14, 272 + i * 12, r(301 + i), 2, day ? 'rgba(255,255,255,.7)' : 'rgba(239,232,194,.6)');
+  if (day){
+    // Barb's boat, and whatever is keeping her company
+    const bob = RM ? 0 : Math.sin(t * 1.5) * 2;
+    shape([[640, 286 + bob],[700, 286 + bob],[690, 298 + bob],[650, 298 + bob]], '#b5523b', 2, r(295));
+    shape(ell(668, 274 + bob, 7, 11, 10), '#9fc27a', 2, r(296), true, 2);
+    line(674, 270 + bob, 700, 250 + bob, r(297), 2);
+    if (S && S.barbGlow) eyes(730, 292, 3, 20, 2.5, t);
+  }
+  // parking lot
+  shape(rect(-10, 290, 560, 100), day ? '#6b7070' : '#1e2426', 3, r(305));
+  for (let i = 0; i < 4; i++) line(60 + i * 110, 330, 40 + i * 110, 372, r(306 + i), 3, day ? '#f4f4ef' : '#c9c3a0');
+  // the shop
+  shape(rect(120, 140, 360, 160), '#3d5a4f', 3, r(310));
+  shape([[106, 144],[300, 112],[494, 144]], '#2c3f38', 3, r(311));
+  ctx.save(); ctx.translate(300, 96); ctx.rotate(-.03);
+  shape(rect(-120, -24, 240, 46), '#c9a66b', 3, r(312));
+  text('EARL\'S BAIT', 0, -3, 34, INK); text('EST. 1987', 0, 16, 13, '#5b4a2e', 'VT323', 0, 400); ctx.restore();
+  // window with the fridge inside
+  shape(rect(150, 180, 170, 90), day ? '#cfe6ef' : '#d8f28a', 3, r(313));
+  ctx.globalAlpha = .9;
+  shape(rect(262, 192, 44, 70), '#bfd6c4', 2, r(314));
+  ctx.globalAlpha = 1;
+  if (!day ? (found.size || (S && S.fed)) : (S && S.fed)) eyes(284, 214, 2, 16, 2.5, t);
+  shape(rect(150, 246, 170, 24), '#a57c4a', 2, r(315));
+  if (!day){
+    const buzz = RM || Math.random() > .04;
+    if (buzz){ ctx.save(); ctx.shadowColor = '#ff7b9c'; ctx.shadowBlur = 16; }
+    text('OPEN', 205, 212, 30, buzz ? '#ff8aa6' : '#4a2b33', 'Gaegu', -.05);
+    if (buzz) ctx.restore();
+  } else {
+    // the sign in the window says how things turned out
+    const k = S && S.lastEnding, sign = k === 'repo' ? 'SOLD' : k === 'deep_stay' ? 'GONE FISHING' : k === 'empty' ? 'CLOSED' : 'OPEN';
+    shape(rect(158, 196, sign.length > 6 ? 98 : 70, 26), sign === 'SOLD' ? '#c24b3c' : '#f4efdf', 2, r(319), false, 2);
+    text(sign, 158 + (sign.length > 6 ? 49 : 35), 209, sign.length > 6 ? 15 : 20, sign === 'SOLD' ? '#f4efdf' : INK, 'Gaegu', -.04);
+  }
+  shape(rect(360, 200, 70, 100), '#1c2c30', 3, r(316));
+  ctx.fillStyle = '#d8f28a'; ctx.beginPath(); ctx.arc(418, 252, 3, 0, 7); ctx.fill();
+  if (day && S){
+    // Gordon, if he outgrew the fridge, waves from under the shop
+    if (stage() >= 4 && S.lastEnding !== 'repo') tentacle(470, 300, 500, 250, 12, t, 18);
+    // Dennis, on his way in for one worm
+    if (S.lastEnding !== 'repo'){
+      ctx.save(); ctx.translate(452, 318);
+      shape(ell(0, -22, 12, 22, 12), '#c8b89a', 2, r(325), true, 2);
+      shape([[0, -18],[3, -12],[0, -4],[-3, -12]], '#3c5a8a', 1, r(326), false, 1.5);
+      ctx.fillStyle = INK; ctx.fillRect(-5, -32, 2, 2); ctx.fillRect(3, -32, 2, 2);
+      ctx.restore();
+    }
+  }
+  // light pole (and moths, at night)
+  shape(rect(514, 110, 8, 190), '#2a2a33', 2, r(317));
+  shape(rect(500, 104, 36, 10), '#2a2a33', 2, r(318));
+  if (!day){
+    const cone = ctx.createLinearGradient(0, 114, 0, 300);
+    cone.addColorStop(0, 'rgba(255,240,170,.28)'); cone.addColorStop(1, 'rgba(255,240,170,0)');
+    ctx.fillStyle = cone; ctx.beginPath(); ctx.moveTo(504, 114); ctx.lineTo(532, 114); ctx.lineTo(600, 300); ctx.lineTo(440, 300); ctx.fill();
+    for (let i = 0; i < 3; i++){ const a = t * (2 + i) + i * 2; ctx.fillStyle = '#f4efdf'; ctx.fillRect(518 + Math.cos(a) * 18, 124 + Math.sin(a * 1.3) * 10, 3, 2); }
+  }
+  // a pickup truck
+  shape(rect(40, 296, 150, 44), '#7a3b2f', 3, r(320));
+  shape(rect(120, 270, 60, 30), '#7a3b2f', 3, r(321));
+  shape(rect(130, 276, 40, 18), '#16233a', 2, r(322));
+  shape(ell(72, 342, 16, 16, 12), '#1a1a1a', 2, r(323), true);
+  shape(ell(158, 342, 16, 16, 12), '#1a1a1a', 2, r(324), true);
+}
+function drawShop(t, r, on){
+  const dark = S && S.powerOff;
+  ctx.fillStyle = on ? '#33483f' : '#18221f'; ctx.fillRect(-20, -20, W + 40, H + 40);
+  ctx.fillStyle = on ? '#29392f' : '#121a17';
+  for (let y = 44; y < 290; y += 22) for (let x = 196; x < 590; x += 22){ ctx.beginPath(); ctx.arc(x, y, 2, 0, 7); ctx.fill(); }
+
+  // door + night outside
+  shape(rect(26, 66, 144, 232), '#1c2c30', 3, r(1));
+  shape(rect(42, 84, 112, 116), '#0a1428', 2, r(2));
+  ctx.fillStyle = '#e8e2b8'; ctx.beginPath(); ctx.arc(122, 112, 10, 0, 7); ctx.fill();
+  ctx.fillStyle = '#aeb8d6'; [[60,100],[84,150],[140,170],[70,180]].forEach(([x,y]) => ctx.fillRect(x, y, 2, 2));
+  const open = S && !['stock','start','note','between','end'].includes(phase);
+  const neon = open && !dark;
+  if (neon){ ctx.save(); ctx.shadowColor = '#ff7b9c'; ctx.shadowBlur = 14; }
+  text(open ? 'OPEN' : 'CLOSED', 98, 226, open ? 30 : 24, neon ? '#ff8aa6' : '#4a2b33', 'Gaegu', -.06);
+  if (neon) ctx.restore();
+
+  // shelves
+  const jars = ['#c9a66b','#8cc6e6','#e98b86','#e6d36a','#9fc27a'];
+  [[200,120],[200,196],[440,120],[440,196]].forEach(([sx, sy], si) => {
+    for (let i = 0; i < 5; i++) shape(rect(sx + 8 + i * 28, sy - 30, 20, 30), jars[(i + si) % 5], 2, r(10 + si * 5 + i), false, 2);
+    shape(rect(sx, sy, 150, 9), '#8a6a3f', 2, r(30 + si));
+  });
+  text(S && S.deep ? 'NO REFUNDS ON LOST THINGS' : 'NO REFUNDS ON LIVE BAIT', 395, 54, 20, on ? '#e6eed3' : '#51605a', 'Gaegu', .02 + (signHits && !S.tape && !RM ? Math.sin(t * 30) * .01 : 0));
+  text('EST. 1987', 98, 266, 15, on ? '#93a79c' : '#3a4a44', 'VT323', 0, 400);
+  if (S && S.tape === 'out'){
+    shape(rect(382, 68, 28, 18), '#2a2a33', 1.5, r(37), false, 2);
+    ctx.fillStyle = '#e6d36a'; ctx.fillRect(385, 70, 22, 5);
+    ctx.fillStyle = '#d7e0cf'; ctx.beginPath(); ctx.arc(390, 80, 2.5, 0, 7); ctx.arc(402, 80, 2.5, 0, 7); ctx.fill();
+  }
+
+  // wall phone
+  const ringing = ph.ring > 0 && !RM, pj = ringing ? Math.sin(t * 60) * 2 : 0;
+  ctx.save(); ctx.translate(pj, 0);
+  shape(rect(174, 104, 24, 46), '#c24b3c', 2, r(35));
+  shape(rect(170, 98 + (ringing ? Math.sin(t * 40) * 2 : 0), 10, 34), '#a33a2e', 2, r(36));
+  ctx.restore();
+  ctx.beginPath(); ctx.moveTo(176, 132);
+  for (let i = 0; i < 6; i++) ctx.quadraticCurveTo(170 + (i % 2) * 12, 140 + i * 6, 176, 144 + i * 6);
+  ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.stroke();
+  if (ph.ring > 0) text('RING', 186, 86 + (RM ? 0 : Math.sin(t * 12) * 3), 20, '#ff735e', 'Gaegu', -.1);
+
+  // fridge
+  const st = S ? stage() : 0;
+  if (S && st >= 2) tentacle(770, 250, 792, 200 - st * 8, 6 + st * 2, t, 8);
+  const sh = fr.rattle > 0 && !RM ? Math.sin(t * 50) * 3 : 0;
+  ctx.save(); ctx.translate(sh, 0);
+  shape(rect(605, 70, 165, 225), on ? '#d7e0cf' : '#8b968c', 3, r(40));
+  shape(rect(624, 94, 124, 150), dark ? '#1f4a3c' : '#a6e3c4', 3, r(41));
+  if (S){
+    const cols = slotCols();
+    for (let i = 0; i < nSlots(); i++){
+      const k = S.slots[i]; if (!k) continue;
+      drawItem(k, 630 + (i % cols) * (117 / cols), [140, 190, 238][Math.floor(i / cols)], cols > 6 ? .55 : .7, r(50 + i));
+    }
+    // murky water shows through the glass
+    if (S.water < 40){ ctx.fillStyle = `rgba(110,100,50,${(40 - S.water) / 40 * .35})`; ctx.fillRect(626, 96, 120, 146); }
+    if (S.fed >= 1 || fr.rattle > 0) eyes(687, 108, eyeCount(), 30 + st * 8, 3, t);
+    // gifts pile up on top of the fridge
+    S.gifts.forEach((g, i) => shape(rect(614 + i * 22, 60, 16, 10), ['#8cc6e6','#e6d36a','#9fc27a','#c9a66b','#ffffff'][i % 5], 1.5, r(47 + i), false, 2));
+  }
+  shape(rect(752, 140, 8, 60), '#8a948a', 2, r(42));
+  ctx.save(); ctx.translate(688, 40); ctx.rotate(-.04);
+  shape(rect(-64, -16, 128, 32), '#c9a66b', 2, r(43));
+  text(S && S.deep ? 'LOST & FOUND' : 'LIVE BAIT', 0, 1, S && S.deep ? 20 : 24, INK); ctx.restore();
+  ctx.restore();
+  if (fr.rattle > 0) text('knock', 640 + Math.sin(t * 9) * 12, 282, 28, '#ff735e', 'Gaegu', -.15);
+
+  // tube light
+  if (on){
+    const g = ctx.createRadialGradient(400, 16, 10, 400, 16, 400);
+    g.addColorStop(0, 'rgba(230,255,200,.2)'); g.addColorStop(1, 'rgba(230,255,200,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  shape(rect(280, 8, 240, 12), on ? '#f4ffe0' : '#4f5a53', 2, r(44));
+
+  drawCust(cust, t, r);
+
+  // counter, register, coffee, delivery box
+  shape(rect(-10, 292, 820, 100), '#a57c4a', 3, r(60));
+  line(40, 322, 300, 326, r(61), 2); line(360, 350, 700, 346, r(62), 2); line(120, 364, 260, 362, r(63), 2);
+  if (drawerT > 0){
+    const out = Math.sin(Math.min(1, (0.9 - drawerT) / .15) * Math.PI / 2) * (drawerT < .2 ? drawerT / .2 : 1);
+    shape(rect(476, 296, 112, 8 + out * 18), '#48514b', 2, r(59));
+    ctx.fillStyle = '#6fbf5a'; for (let i = 0; i < 4; i++) ctx.fillRect(486 + i * 24, 300 + out * 8, 16, 6 * out);
+  }
+  shape(rect(470, 236, 124, 62), '#5d6760', 3, r(64));
+  shape(rect(484, 246, 96, 28), '#0e1d12', 2, r(65));
+  if (S && S.wormName){
+    // the pet worm lives on the register
+    shape(rect(560, 216, 16, 18), '#f2ece0', 1.5, r(74), false, 2);
+    const wy = RM ? 0 : Math.sin(t * 3) * 2;
+    ctx.beginPath(); ctx.moveTo(568, 216); ctx.quadraticCurveTo(562, 206 + wy, 570, 200 + wy);
+    ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.strokeStyle = PINK; ctx.stroke();
+    ctx.fillStyle = INK; ctx.fillRect(569, 198 + wy, 2, 2);
+    text(S.wormName, 568, 190, 14, '#f4efdf', 'Gaegu');
+  }
+  if (S && S.up.bell){
+    shape(ell(488, 230, 12, 9, 12), '#d8c27a', 2, r(71), true);
+    shape(rect(476, 232, 24, 4), '#8a7a4a', 1.5, r(72), false, 2);
+  }
+  if (S && S.up.scanner){
+    shape([[430, 312],[462, 306],[466, 316],[446, 320],[444, 336],[434, 336]], '#48514b', 2, r(73));
+    ctx.fillStyle = '#ff5a4a'; ctx.fillRect(458, 309, 5, 3);
+  }
+  let reg = '--';
+  if (phase === 'order') reg = '$' + scannedTotal();
+  else if (phase === 'change') reg = 'IN $' + paid;
+  text(reg, 532, 261, 24, '#8dff9a', 'VT323', 0, 400);
+
+  if (S && S.up.espresso){
+    shape(rect(114, 234, 52, 58), '#b7c0bd', 3, r(66));
+    shape(rect(122, 244, 36, 14), '#2a2a33', 2, r(67));
+    shape(rect(134, 258, 12, 10), '#48514b', 2, r(68));
+    shape(rect(130, 276, 20, 14), '#ffffff', 2, r(69), false, 2);
+    ctx.fillStyle = '#ff5a4a'; ctx.beginPath(); ctx.arc(156, 251, 3, 0, 7); ctx.fill();
+  } else {
+    shape(rect(114, 288, 52, 6), '#2a2a33', 2, r(66));
+    shape(ell(140, 268, 19, 19, 14), '#6b4a2e', 2, r(67), true);
+    shape(rect(128, 242, 24, 10), '#2a2a33', 2, r(68));
+    ctx.beginPath(); ctx.arc(160, 266, 9, -1.3, 1.3); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+  }
+  if (on && !RM){ ctx.strokeStyle = 'rgba(230,238,211,.35)'; ctx.lineWidth = 2; for (let i = 0; i < 2; i++){ ctx.beginPath(); const sx = 134 + i * 10; ctx.moveTo(sx, 238); ctx.quadraticCurveTo(sx + Math.sin(t * 2 + i) * 6, 226, sx, 212); ctx.stroke(); } }
+
+  if (S && boxCount()){
+    shape(rect(22, 252, 86, 42), '#c9a66b', 3, r(69));
+    shape([[22, 252],[40, 238],[66, 252]], '#b8955c', 2, r(70));
+    text('DELIVERY', 65, 276, 16, INK);
+  }
+
+  counter.forEach((c, i) => {
+    const x = 190 + i * 27, pop = easeBack((T - c.born) / .28);
+    const sc = T - c.scanT < .25 ? 1 + Math.sin((T - c.scanT) / .25 * Math.PI) * .25 : 1;
+    ctx.save(); ctx.translate(x + 11, 294); ctx.scale(pop * sc, pop * sc); ctx.translate(-(x + 11), -294);
+    drawItem(c.k, x, 294, 1, r(80 + i));
+    ctx.restore();
+    if (c.scanned){ line(x + 4, 256, x + 9, 262, r(95 + i), 3, '#6fe07a'); line(x + 9, 262, x + 19, 248, r(96 + i), 3, '#6fe07a'); }
+  });
+
+  // Gordon reaching out to help (fetching, or scaring someone off)
+  if (reach){
+    const p = reach.t / reach.dur, k = p < .5 ? p / .5 : 1 - (p - .5) / .5;
+    tentacle(610, 200, 610 + (reach.x - 610) * k, 200 + (reach.y - 200) * k, reach.y < 200 ? 16 : 12, t, reach.y < 200 ? 40 : 20);
+  }
+  // escaped crickets hopping around the shop
+  if (esc){
+    esc.bugs.forEach((b, i) => {
+      ctx.save(); ctx.translate(b.x, b.y);
+      const rb = r(330 + i);
+      line(-6, 2, -12, 10, rb, 2); line(0, 3, -2, 11, rb, 2); line(6, 2, 12, 9, rb, 2);
+      shape(ell(0, 0, 10, 6, 10), '#5b4226', 1.5, rb, true, 2);
+      line(8, -3, 18, -12, rb, 1.5); line(6, -4, 12, -14, rb, 1.5);
+      ctx.restore();
+    });
+    text(`catch them! ${Math.ceil(esc.t)}`, 380, 206, 20, '#ffb35a', 'Gaegu', -.03);
+  }
+  if (steal){
+    const p = steal.t / 1.3, reach = p < .45 ? p / .45 : 1 - (p - .45) / .55;
+    const tx = 610 + (steal.x - 610) * reach, ty = 200 + (steal.y - 200) * reach;
+    tentacle(610, 200, tx, ty, 12, t, 24);
+    drawItem(steal.k, tx - 11, ty + 10, 1, r(99));
+  }
+}
+function drawFridgeView(t, r, on){
+  const sh = fr.rattle > 0 && !RM ? Math.sin(t * 50) * 2.5 : 0;
+  const st = stage(), hh = hatch();
+  ctx.fillStyle = on ? '#22302b' : '#141c1a'; ctx.fillRect(-20, -20, W + 40, H + 40);
+  ctx.save(); ctx.translate(sh, 0);
+  shape(rect(20, 10, 560, 364), on ? '#d7e0cf' : '#8b968c', 3, r(200));
+  shape(rect(40, 24, 520, 336), '#bfe9d2', 3, r(201));
+  const g = ctx.createRadialGradient(300, 60, 10, 300, 60, 260 + st * 30);
+  g.addColorStop(0, `rgba(10,30,26,${.45 + st * .08})`); g.addColorStop(1, 'rgba(10,30,26,0)');
+  ctx.fillStyle = g; ctx.fillRect(40, 24, 520, 336);
+  shape(ell(hh.cx, hh.cy, hh.rx, hh.ry, 18), '#07100e', 3, r(202), true);
+  if (S.fed >= 1 || fr.rattle > 0) eyes(hh.cx, hh.cy, eyeCount(), 36 + st * 16, 5 + st * .6, t);
+  if (st >= 3) tentacle(hh.cx + hh.rx * .5, hh.cy + 6, hh.cx + hh.rx * .6 + 20, 128, 10, t, 14);
+  if (fr.rattle > 0) text(`knock knock (wants ${stock('glow') ? 'a glowing one' : NUM[hunger()]})`, 300, hh.cy + hh.ry + 20, 22, '#c23b2b', 'Gaegu', -.04);
+  SHELF_Y.forEach((sy, s) => shape(rect(40, sy, 520, 8), '#9fb3a8', 2, r(210 + s)));
+  for (let i = 0; i < nSlots(); i++){
+    const k = S.slots[i], sr = slotRect(i);
+    if (k) drawItem(k, sr.x + (sr.w - 46) / 2, SHELF_Y[Math.floor(i / slotCols())], 2.1, r(220 + i));
+  }
+  // a worm peeking out of its cup, hoping for a name
+  if (pk.i >= 0 && S.slots[pk.i] === 'worm'){
+    const sr = slotRect(pk.i), cx = sr.x + sr.w / 2, top = SHELF_Y[Math.floor(pk.i / slotCols())] - 58;
+    const up = Math.min(1, (3.5 - pk.t) / .3), sway = RM ? 0 : Math.sin(t * 5) * 5;
+    ctx.beginPath(); ctx.moveTo(cx, top); ctx.quadraticCurveTo(cx + sway, top - 18 * up, cx - sway * .5, top - 34 * up);
+    ctx.lineWidth = 11; ctx.lineCap = 'round'; ctx.strokeStyle = INK; ctx.stroke();
+    ctx.lineWidth = 7; ctx.strokeStyle = PINK; ctx.stroke();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(cx - sway * .5 - 2, top - 35 * up, 1.6, 0, 7); ctx.arc(cx - sway * .5 + 3, top - 35 * up, 1.6, 0, 7); ctx.fill();
+    text('?', cx + 16, top - 40 * up, 20, '#ffffff');
+  }
+  if (S.up.pump){
+    shape(rect(650, 100, 80, 24), '#48514b', 2, r(240));
+    ctx.fillStyle = '#6fe07a'; ctx.fillRect(658, 109, 5, 5);
+    text('AIR PUMP', 698, 112, 16, '#d7e0cf', 'VT323', 0, 400);
+  }
+  ctx.restore();
+
+  const hintTxt = phase === 'order' ? 'click stock to take it out' : 'click the box to put stock away';
+  text(hintTxt, 690, 36, 19, '#93a79c');
+  text(`${S.slots.filter(Boolean).length}/${nSlots()} full`, 690, 62, 24, '#d6f07f', 'VT323', 0, 400);
+  text(fr.rattle > 0 ? 'click the dark hatch to feed him' : '', 690, 86, 17, '#ff8aa6');
+  if (!S.up.pump){
+    const wc = S.water < 20 ? '#ff735e' : S.water < 40 ? '#e6d36a' : '#8cc6e6';
+    text('MINNOW WATER', 648, 113, 18, '#93a79c', 'VT323', 0, 400);
+    ctx.strokeStyle = '#2a3b3d'; ctx.lineWidth = 2; ctx.strokeRect(700, 106, 76, 14);
+    ctx.fillStyle = wc; ctx.fillRect(702, 108, 72 * S.water / 100, 10);
+  }
+  if (boxCount()){
+    shape(rect(596, 130, 188, 234), '#c9a66b', 3, r(260));
+    shape([[596, 130],[630, 104],[690, 130]], '#b8955c', 2, r(261));
+    text('DELIVERY', 690, 148, 20, INK);
+    STOCK.forEach((k, j) => {
+      const br = boxRowRect(j);
+      ctx.globalAlpha = S.box[k] ? 1 : .3;
+      drawItem(k, br.x + 26, br.y + 40, 1.3, r(270 + j));
+      text(`x${S.box[k]}`, br.x + 100, br.y + 24, 30, INK, 'VT323', 0, 400, 'left');
+      ctx.globalAlpha = 1;
+    });
+  } else {
+    text('nothing left', 690, 240, 20, '#93a79c');
+    text('in the box', 690, 264, 20, '#93a79c');
+  }
+}
+function drawCust(c, t, r){
+  if (!c) return;
+  const L = c.look, x = 400 + c.ax, bob = RM ? 0 : Math.sin(t * 2.6 + (L.h || 0)) * 2.5;
+  const jt = T - c.jumpT, jump = !RM && jt < .5 ? -Math.sin(jt / .5 * Math.PI) * 16 : 0;
+  const mood = c.mood || (c.patience < .35 ? 'mad' : 'ok');
+  ctx.save(); ctx.translate(x, 296 + bob + jump);
+  if (L.kind === 'fish' && L.coat === false){
+    // a fish customer at the bottom of the lake: no coat needed, just floating
+    const fy = -170 + (RM ? 0 : Math.sin(t * 1.8) * 6), col = L.color;
+    shape([[-58, fy],[-104, fy - 36],[-98, fy + 34]], col, 3, r(100));
+    shape(ell(0, fy, 78, 50, 18), col, 4, r(103), true);
+    shape([[-20, fy - 44],[10, fy - 70],[30, fy - 46]], col, 2, r(104));
+    shape([[0, fy + 20],[-14, fy + 44],[16, fy + 30]], col, 2, r(107));
+    ctx.beginPath(); ctx.arc(14, fy, 22, -1.2, 1.2); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+    shape(ell(42, fy - 10, 13, 13, 10), '#fbf7ea', 2, r(105), true);
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(46, fy - 8, 5, 0, 7); ctx.fill();
+    line(64, fy + 12, 76, mood === 'happy' ? fy + 8 : fy + 14, r(106), 3);
+    if (L.hat){ shape(rect(10, fy - 76, 50, 26), '#3f5f7a', 2, r(108)); shape(ell(35, fy - 50, 40, 7, 12), '#3f5f7a', 2, r(109), true); }
+  } else if (L.kind === 'eel'){
+    ctx.beginPath(); ctx.moveTo(-30, 0);
+    for (let y = 0; y >= -220; y -= 10) ctx.lineTo(Math.sin(y * .04 + (RM ? 0 : t * 3)) * 26, y);
+    ctx.lineCap = 'round'; ctx.lineWidth = 34; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 28; ctx.strokeStyle = L.color; ctx.stroke();
+    const hx = Math.sin(-220 * .04 + (RM ? 0 : t * 3)) * 26;
+    shape(ell(hx, -226, 22, 16, 12), L.color, 3, r(140), true);
+    ctx.fillStyle = '#f5e46a'; ctx.beginPath(); ctx.arc(hx + 8, -230, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(hx + 9, -230, 1.8, 0, 7); ctx.fill();
+  } else if (L.kind === 'worm'){
+    // Dennis's worm, all grown up, still in its tiny tie
+    const sw = RM ? 0 : Math.sin(t * 2.5) * 10;
+    ctx.beginPath(); ctx.moveTo(0, 0); ctx.bezierCurveTo(-30, -60, 30 + sw, -110, sw * .5, -170);
+    ctx.lineCap = 'round'; ctx.lineWidth = 42; ctx.strokeStyle = INK; ctx.stroke(); ctx.lineWidth = 36; ctx.strokeStyle = PINK; ctx.stroke();
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(sw * .5 - 7, -176, 3, 0, 7); ctx.arc(sw * .5 + 7, -176, 3, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(sw * .5, -166, 6, .3, Math.PI - .3); ctx.lineWidth = 2.5; ctx.stroke();
+    shape([[sw * .5 + 2, -150],[sw * .5 + 10, -140],[sw * .5 + 2, -126],[sw * .5 - 6, -140]], '#3c5a8a', 1.5, r(141), false, 2);
+  } else if (L.kind === 'mom'){
+    // Gordon's mom: enormous, pink, many-eyed, delighted
+    const w = 130, h = 280;
+    tentacle(-110, -20, -150, -150, 14, t, 14); tentacle(110, -20, 150, -150, 14, t + 1, 14);
+    shape(ell(0, -h / 2 + 20, w, h / 2, 20), L.color, 6, r(142), true);
+    eyes(0, -h + 90, 7, 150, 7, t);
+    ctx.beginPath(); ctx.arc(0, -h + 150, 26, .3, Math.PI - .3); ctx.lineWidth = 4; ctx.strokeStyle = INK; ctx.stroke();
+  } else if (L.kind === 'fish'){
+    shape([[-60, -192],[-108, -228],[-100, -154]], '#5f9587', 3, r(100));
+    shape(rect(-58, -150, 116, 160), '#6b5638', 3, r(101));
+    line(0, -148, 0, 0, r(102), 2);
+    shape(ell(0, -190, 74, 46, 18), '#7fb3a8', 4, r(103), true);
+    shape([[-20, -230],[10, -250],[30, -228]], '#5f9587', 2, r(104));
+    ctx.beginPath(); ctx.arc(10, -190, 20, -1.2, 1.2); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke();
+    shape(ell(40, -200, 13, 13, 10), '#fbf7ea', 2, r(105), true);
+    ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(44, -198, 5, 0, 7); ctx.fill();
+    line(62, -178, 74, mood === 'happy' ? -182 : -176, r(106), 3);
+  } else {
+    const w = L.w, h = L.h, ey = -h * .72, ex = w * .36, my = -h * .56;
+    if (L.kind === 'lake'){
+      // long wet hair behind her, and water dripping off
+      shape(ell(0, -h * .62, w * 1.25, h * .42, 16), '#2f5a5a', 5, r(130), true);
+      if (!RM) for (let i = 0; i < 4; i++){ const d = (t * .9 + i * .25) % 1; ctx.fillStyle = 'rgba(140,198,230,.9)'; ctx.beginPath(); ctx.arc(-w * .8 + i * w * .5, -h * .2 + d * h * .25, 3, 0, 7); ctx.fill(); }
+    }
+    if (L.glowy){ ctx.save(); ctx.shadowColor = '#9dff7a'; ctx.shadowBlur = 24; }
+    shape(ell(0, -h / 2, w, h / 2 + 6, 18), L.color, 5, r(110), true);
+    if (L.glowy) ctx.restore();
+    if (L.tie) shape([[0, -h * .42],[8, -h * .3],[0, -h * .1],[-8, -h * .3]], L.kind === 'landlord' ? '#c24b3c' : '#3c5a8a', 2, r(111), false, 2);
+    if (L.shades) shape(rect(-ex - 16, ey - 9, ex * 2 + 32, 18), '#15181a', 1.5, r(119), false, 2.5);
+    else if (L.kind === 'lake'){ for (const s of [-1, 1]){ ctx.beginPath(); ctx.arc(s * ex, ey, 8, .2, Math.PI - .2); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke(); } }
+    else for (const s of [-1, 1]){
+      shape(ell(s * ex, ey, 11, 13, 10), '#fbf7ea', 2, r(112 + s), true, 2.5);
+      const look = c.pell && fr.rattle >= 0 && (stage() >= 1 || S.ignored >= 1) ? 6 : 2;
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(s * ex + look, ey + 3, 4.5, 0, 7); ctx.fill();
+      if (L.glasses){ ctx.beginPath(); ctx.arc(s * ex, ey, 16, 0, 7); ctx.lineWidth = 2.5; ctx.strokeStyle = INK; ctx.stroke(); }
+      if (mood === 'mad' || mood === 'angry') line(s * ex + s * 14, ey - 24, s * ex - s * 10, ey - 15, r(116 + s), 3);
+    }
+    if (L.glasses) line(-ex + 16, ey, ex - 16, ey, r(118), 2.5);
+    ctx.beginPath(); ctx.lineWidth = 3; ctx.strokeStyle = INK;
+    if (mood === 'happy') ctx.arc(0, my - 8, 12, .3, Math.PI - .3);
+    else if (mood === 'ok'){ ctx.moveTo(-10, my); ctx.lineTo(10, my + 1); }
+    else ctx.arc(0, my + 10, 11, Math.PI + .4, -.4);
+    ctx.stroke();
+    if (L.hat){
+      shape(rect(-w * .55, -h - 22, w * 1.1, 26), L.hatColor, 2, r(120));
+      shape(ell(0, -h + 4, w * .95, 9, 14), L.hatColor, 2, r(121), true);
+    }
+    if (L.beard) shape(ell(0, my + 16, w * .55, 26, 14), '#d7d9d2', 3, r(124), true, 2.5);
+    if (L.kind === 'landlord'){
+      shape(ell(0, -h - 10, w * .5, 22, 14), '#2a2a33', 2, r(122), true);
+      shape(ell(0, -h + 6, w * .85, 7, 14), '#2a2a33', 2, r(123), true);
+    }
+  }
+  ctx.restore();
+}
+
+// ---------- boot ----------
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(.05, (now - last) / 1000); last = now; T = now / 1000;
+  if (S) update(dt);
+  draw(T);
+  if (epiCtx && epiCtx.canvas.isConnected){
+    const main = ctx, b = RM ? 0 : Math.floor(T * 7);
+    ctx = epiCtx;
+    try { drawOutside(T, k => R(b * 131 + k * 7919 + 1), true); } finally { ctx = main; }
+  } else epiCtx = null;
+  requestAnimationFrame(loop);
+}
+function boot(data){
+  S = data && data.S && data.S.slots && data.S.prices && 'deep' in data.S ? data.S : fresh();
+  skin(S.deep);
+  updAll(); showTitle();
+  requestAnimationFrame(loop);
+}
+try { window.claude?.hot?.snapshot?.(() => ({S: lastStart || S})); } catch(e) {}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+})();
+</script>
